@@ -29,7 +29,7 @@ def get_requirements():
 
 setup(
     name="pomegranate",
-    version="0.1.0",
+    version="0.1.1",
     packages=find_packages(exclude=("examples.*",)),
     url="https://github.com/uwinx/pomegranate",
     license="MIT",

@@ -20,7 +20,7 @@ class JSONStorage(MemoryStorage):
     JSON File storage based on MemoryStorage
     """
 
-    def __init__(self, path: typing.Union[pathlib.Path, str], reload_each: int = 60):
+    def __init__(self, path: typing.Union[pathlib.Path, str], reload_each: int = 360):
         """
         :param path: file path
         :param reload_each: reload json file every n sec
@@ -33,7 +33,9 @@ class JSONStorage(MemoryStorage):
             data = self.__read(path)
 
         super().__init__(data)
-        loop.create_task(self.__reload(reload_each))
+
+        if reload_each is False:
+            loop.create_task(self.__reload(reload_each))
 
     @staticmethod
     def __read(path: pathlib.Path):

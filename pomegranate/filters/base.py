@@ -40,13 +40,13 @@ class CurrentState:
         return Filter(_f, requires_context=True)
 
     @classmethod
-    def equal(cls, state: str):
+    def equal(cls, state: str) -> Filter:
         return cls.exact(state)
 
     @classmethod
-    def not_equal(cls, state: str):
+    def not_equal(cls, state: str) -> Filter:
         return cls.exact(state, reverse=True)
 
     @classmethod
-    def any(cls):
+    def any(cls) -> Filter:
         return Filter(lambda *ignore: True)

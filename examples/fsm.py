@@ -13,7 +13,7 @@ buttons = (
 
 # /*
 #  * get configurations from environment variable
-#  * look xelethon.TelegramClient::Env for more
+#  * look pomegranate.TelegramClient::Env for more
 #  */
 bot = TelegramClient.from_env().start_as_bot()
 
