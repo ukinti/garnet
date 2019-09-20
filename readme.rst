@@ -4,6 +4,7 @@
 As good as pomegranate wine.
 -----------------------------------
 
+.. invisible-content-till-nel
 .. _aioredis: https://github.com/aio-libs/aioredis
 .. _cryptg: https://pypi.org/project/cryptg/
 .. _telethon: https://pypi.org/project/Telethon/
@@ -12,9 +13,11 @@ As good as pomegranate wine.
 .. _hachoir: https://pypi.org/project/hachoir/
 .. _aiohttp: https://pypi.org/project/aiohttp/
 .. _Alex: https://github.com/JrooTJunior
+
 .. image:: https://raw.githubusercontent.com/uwinx/pomegranate/master/static/pomegranate.jpg
 
-::
+
+Install::
 
     pip install "https://github.com/uwinx/pomegranate/archive/master.zip"
 
@@ -122,6 +125,20 @@ If you want to write your own filter, do it.
     async def handler(event): ...
 
 So the handler can take strict ``context`` argument and also ignore it
+
+
+=================
+🐙 Easy handlers
+=================
+
+``pomegranate::TelegramClient`` has several handlers::
+
+
+    .message_handler(*f)
+    .callback_query_handler(*f)
+    .chat_action_handler(*f)
+    .message_edited_handler(*f)
+    .album_handler(*f):
 
 
 ======================
