@@ -103,6 +103,17 @@ class TelegramClient(_TelegramClient):
 
         return decorator
 
+    # noinspection PyTypeChecker
+    def message_handler(self, *filters: Union[Callable, Filter]): return self.on(*filters, event=NewMessage)
+    # noinspection PyTypeChecker
+    def callback_query_handler(self, *filters: Union[Callable, Filter]): return self.on(*filters, event=CallbackQuery)
+    # noinspection PyTypeChecker
+    def chat_action_handler(self, *filters: Union[Callable, Filter]): return self.on(*filters, event=ChatAction)
+    # noinspection PyTypeChecker
+    def message_edited_handler(self, *filters: Union[Callable, Filter]): return self.on(*filters, event=MessageEdited)
+    # noinspection PyTypeChecker
+    def album_handler(self, *filters: Union[Callable, Filter]): return self.on(*filters, event=Album)
+
     def add_event_handler(
             self,
             callback: Callable,
@@ -201,3 +212,14 @@ class TelegramClient(_TelegramClient):
                     name = getattr(callback, '__name__', repr(callback))
                     self._log[__name__].exception('Unhandled exception on %s',
                                                   name)
+
+    def run_until_disconnected(self: 'TelegramClient'):
+        if self.loop.is_running():
+            return self._run_until_disconnected()
+        try:
+            return self.loop.run_until_complete(self._run_until_disconnected())
+        except KeyboardInterrupt:
+            pass
+        finally:
+            # No loop.run_until_complete; it's already syncified
+            self.disconnect()

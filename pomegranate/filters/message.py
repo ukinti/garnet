@@ -38,8 +38,10 @@ class MessageText:
     @staticmethod
     def commands(*commands: str) -> Filter:
         return Filter(
-            lambda update: update.raw_text.startswith("/")
-            and update.raw_text[1:] in commands
+            lambda update:
+            isinstance(update.raw_text, str)
+            and update.raw_text.startswith("/")
+            and update.raw_text.split()[0][1:] in commands
         )
 
     @staticmethod
@@ -55,5 +57,5 @@ class MessageText:
         return Filter(lambda update: update.raw_text in texts)
 
     @staticmethod
-    def isdigit():
+    def isdigit() -> Filter:
         return Filter(lambda update: (update.raw_text or "").isdigit())
