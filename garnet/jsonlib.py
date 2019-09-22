@@ -1,9 +1,7 @@
 import json as _std_json
 import importlib
 
-__libs = {
-    "orjson", "ujson",
-}
+__libs = {"orjson", "ujson"}
 
 json = _std_json
 

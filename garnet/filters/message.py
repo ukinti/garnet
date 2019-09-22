@@ -36,11 +36,10 @@ class MessageText:
         )
 
     @staticmethod
-    def commands(*commands: str) -> Filter:
+    def commands(*commands: str, prefixes=("/",)) -> Filter:
         return Filter(
-            lambda update:
-            isinstance(update.raw_text, str)
-            and update.raw_text.startswith("/")
+            lambda update: isinstance(update.raw_text, str)
+            and any(update.raw_text.startswith(prefix) for prefix in prefixes)
             and update.raw_text.split()[0][1:] in commands
         )
 
@@ -57,5 +56,13 @@ class MessageText:
         return Filter(lambda update: update.raw_text in texts)
 
     @staticmethod
-    def isdigit() -> Filter:
-        return Filter(lambda update: (update.raw_text or "").isdigit())
+    def isdigit(reverse: bool = False) -> Filter:
+        def _f(update) -> bool:
+            return (update.raw_text or "").isdigit()
+
+        if reverse:
+
+            def _f(update) -> bool:
+                return not (update.raw_text or "").isdigit()
+
+        return Filter(_f)

@@ -1,5 +1,5 @@
-🍷 Pomegranate
-=================
+🍷 Pomegranate a.k.a garnet
+===================================
 
 As good as pomegranate wine.
 -----------------------------------
@@ -15,6 +15,10 @@ As good as pomegranate wine.
 .. _Alex: https://github.com/JrooTJunior
 
 .. image:: https://raw.githubusercontent.com/uwinx/pomegranate/master/static/pomegranate.jpg
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/python/black
+    :alt: aioqiwi-code-style
 
 
 Install::
@@ -39,7 +43,7 @@ Install::
 - Redis - (requires aioredis_) - redis is fast key-value storage, if you're using your data is durable and persistent
 
 
-Pomegranate implements updates dispatching and checks callback's filters, which are stored in handler._xelethon__Filters
+Pomegranate implements updates dispatching and checks callback's filters wrapping all callbacks into ``garnet::Callback`` object
 
 ----------------
 😋 Filters
@@ -47,7 +51,7 @@ Pomegranate implements updates dispatching and checks callback's filters, which 
 
 ``Filter`` object is the essential part of Pomegranate, the do state checking and other stuff.
 
-Basically, it's ``func`` from ``MyEventBuilder(func=lambda _: <bool>)`` but a way more complicated and not stored in EventBuilder, it's stored in callback's object argument named ``_xelethon__Filters`` (custom)
+Basically, it's ``func`` from ``MyEventBuilder(func=lambda _: <bool>)`` but a way more complicated and not stored in EventBuilder, it's stored in callback object
 
 
 Useful filters
@@ -60,7 +64,7 @@ Useful filters
 
 .. code:: python
 
-    from pomegranate import MessageText, TelegramClient
+    from garnet import MessageText, TelegramClient
     bot = TelegramClient.from_env().start_as_bot()
 
     # // our code here //
@@ -90,19 +94,19 @@ MessageText includes following comparisons all returning <bool>
 
 
 
-2) 👀 **CurrentState**
+2) 👀 **state module**  [``from garnet import state``]
 
 Once great minds decided that state checking will be in filters without adding ``state`` to on func params and further storing state in ``callback.(arg)``
-``CurrentState`` methods return ``Filter`` as well. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMProxy is passed if true
+``state`` module methods return ``Filter`` as well. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMProxy is passed if true
 
 See `FSM example <https://github.com/uwinx/pomegranate/blob/master/examples/fsm.py>`_ to understand how CurrentState works
 
-CurrentState includes following methods all returning <bool>
+Includes following methods all returning <bool>
  - ``.exact(x)`` -> ``await context.get_state() == x``
  - ``.between(x)`` -> ``await context.get_state() in x``
  - ``.equal(x)`` -> ``.exact(x)``
  - ``.not_equal(x)`` -> ``!.exact(x)``
- - ``.any()`` -> ``(await context.get_state) is not None``
+ - ``.every()`` -> ``(await context.get_state) is not None``
 
 
 3) 🦔 Custom **Filter**
@@ -112,7 +116,7 @@ If you want to write your own filter, do it.
 
 .. code:: python
 
-    from pomegranate import Filter, FSMProxy
+    from garnet import Filter, FSMProxy
 
     async def myFunc(event): ...
     async def myFuncContextRequires(event, context: FSMProxy): ...
@@ -131,7 +135,7 @@ So the handler can take strict ``context`` argument and also ignore it
 🐙 Easy handlers
 =================
 
-``pomegranate::TelegramClient`` has several handlers::
+``garnet::TelegramClient`` has several handlers::
 
 
     .message_handler(*f)
@@ -142,11 +146,44 @@ So the handler can take strict ``context`` argument and also ignore it
 
 
 ======================
-On StartUp|CleanUp
+On start|finish
 ======================
 
-Soon™️
+``garnet::TelegramClient`` contains two lists on_start and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
+``PseudoFrozenList`` has three main methods::
 
+    .append(*coro)
+    .remove(*coro)
+    .freeze()
+
+Where coro is async-defined function which takes one positional argument, its instance will be TelegramClient
+
+Usage example:
+
+.. code-block:: python
+
+    # my_module.py
+    class MyPostgresDatabase:
+        ...
+        async def close_pool(self, bot): await self.pool.safe_close()
+        async def open_pool(self, bot): await self.pool.open_conn_pool()
+
+    # garnethon.py
+    from garnet import TelegramClient
+    from my_module import MyPostgresDatabase
+
+    db = MyPostgresDatabase()
+    bot = TelegramClient.from_env().start_as_bot()
+    bot.on_start.append(db.open_pool)
+    bot.on_finish.append(db.close_pool)
+    ...
+    bot.run_until_connected()
+
+=================
+What's more ❓
+=================
+
+Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and garnet::callbacks::base::Callback as a parent class
 
 =====================
 🤗 Credits

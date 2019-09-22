@@ -39,11 +39,11 @@ class JSONStorage(MemoryStorage):
 
     @staticmethod
     def __read(path: pathlib.Path):
-        with path.open('r') as f:
+        with path.open("r") as f:
             return json.load(f)
 
     def __write(self, path: pathlib.Path):
-        with path.open('w') as f:
+        with path.open("w") as f:
             return json.dump(self.data, f, indent=4)
 
     async def __reload(self, delay: int):
