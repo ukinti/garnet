@@ -27,14 +27,14 @@ def exact(state: str, reverse: bool = False) -> Filter:
             return (await context.get_state()) != state
         return (await context.get_state()) == state
 
-    return Filter(_f, requires_context=True)
+    return Filter(_f, requires_context=True, state_op=True)
 
 
 def between(states: List[str]) -> Filter:
     async def _f(event, context):
         return (await context.get_state()) in states
 
-    return Filter(_f, requires_context=True)
+    return Filter(_f, requires_context=True, state_op=True)
 
 
 def equal(state: str) -> Filter:
@@ -49,7 +49,7 @@ def every() -> Filter:
     async def _f(event, context):
         return (await context.get_state()) is not None
 
-    return Filter(_f, requires_context=True)
+    return Filter(_f, requires_context=True, state_op=True)
 
 
 __all__ = (

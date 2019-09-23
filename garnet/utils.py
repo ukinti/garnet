@@ -1,12 +1,16 @@
 # PseudoFrozenList can be frozen at the some point of time
 
-from typing import List, cast, Callable, Iterable
+from typing import List, Iterable, Any
 
 
 class PseudoFrozenList:
     # we don't need  python list's all methods, so don't inherit from it
-    def __init__(self):
-        self.__callbacks: List[Callable] = list()
+    def __init__(self, type_: Any):
+        if not isinstance(type_.__class__, type):
+            raise ValueError(f"Expected class, got {type_!r}")
+
+        self.__type = type_
+        self.__items: List[type_] = list()
         self.__frozen = False
 
     @property
@@ -23,28 +27,34 @@ class PseudoFrozenList:
                 f"{callback!r} cannot be appended/removed, list is already frozen."
             )
 
-        if not isinstance(callback, Callable):
+        if not isinstance(callback, self.__type):
             raise ValueError(
-                f"Only {Callable!r} can be appended/removed, got {callback!r}"
+                f"Only {self.__type!r} can be appended/removed, got {callback!r}"
             )
 
-    def append(self, *callback: Callable) -> None:
-        self.__validation(*callback)
-        ap = self.__callbacks.append
-        for callback_ in callback:
+    def append(self, *items: Any) -> None:
+        self.__validation(*items)
+        ap = self.__items.append
+        for callback_ in items:
             ap(callback_)
 
-    def remove(self, *callback: Callable) -> None:
-        self.__validation(*callback)
-        rm = self.__callbacks.remove
-        for callback_ in callback:
+    def remove(self, *items: Any) -> None:
+        self.__validation(*items)
+        rm = self.__items.remove
+        for callback_ in items:
             rm(callback_)
 
     def freeze(self):
         self.__frozen = True
 
     def __iter__(self):
-        return list.__iter__(self.__callbacks)
+        return list.__iter__(self.__items)
 
+    # decorator for append
+    @property
+    def __call__(self):
+        def wrp(item: Any):
+            self.__validation(item)
+            self.append(item)
 
-cast(PseudoFrozenList, List[Callable])
+        return wrp

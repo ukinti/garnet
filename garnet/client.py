@@ -19,6 +19,7 @@ from telethon.events import (
 from telethon.client.updates import EventBuilderDict
 from telethon.sessions import Session
 
+from .filters import state
 from .filters.base import Filter
 from .fsm.storages import base, memory
 from .callbacks.base import Callback, CURRENT_CLIENT_KEY, CALLBACK_STATE_KEY
@@ -59,7 +60,7 @@ class TelegramClient(_TelegramClient):
         self.storage = storage
         self.__bot_token = None
 
-        self.on_start, self.on_finish = PseudoFrozenList(), PseudoFrozenList()
+        self.on_start, self.on_finish = PseudoFrozenList(Callable), PseudoFrozenList(Callable)
         super().__init__(session, api_id, api_hash, *args, **kwargs)
 
     @classmethod
@@ -145,6 +146,19 @@ class TelegramClient(_TelegramClient):
         if filters is not None and not isinstance(filters, Sequence):
             filters = (filters,)
 
+        _has_state_checker = False
+        for filter_ in filters:
+            if not isinstance(filter_, (Filter, Callable)):
+                raise ValueError(f"Got {type(filter_).__qualname__}, expected Filter or Callable")
+
+            if isinstance(filter_, Filter) and filter_.state_op:
+                _has_state_checker = True
+
+        if _has_state_checker is False:
+            filters = list(filters)
+            filters.append(~state.every())
+            filters = tuple(filters)
+
         if not isinstance(callback, Callback):
             callback = Callback(callback, *filters)
 
@@ -196,9 +210,12 @@ class TelegramClient(_TelegramClient):
             filters: List[Filter] = callback.filters
             succeed = True
             key_maker_from_filters = (
-                list(filter(lambda f_: f_.key_maker, filters)) if filters else None
+                list(filter(
+                    lambda f_: hasattr(f_, "key_maker") & f_.key_maker is not None,
+                    filters)
+                ) if filters else None
             )
-            key_maker = key_maker_from_filters[0] if filters else self.make_fsm_key
+            key_maker = key_maker_from_filters[0] if key_maker_from_filters else self.make_fsm_key
             context = base.FSMContext(self.storage, **key_maker(event))
 
             if filters:

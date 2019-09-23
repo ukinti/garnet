@@ -185,6 +185,12 @@ What's more ❓
 
 Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and garnet::callbacks::base::Callback as a parent class
 
+Pretty bitwise operation supported filters::
+
+    # &, |, ~, ^
+    # also: ==, != (idk why)
+    @bot.on(MessageText.exact(".") | MessageText.exact(".."))
+
 =====================
 🤗 Credits
 =====================
