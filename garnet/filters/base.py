@@ -5,12 +5,15 @@ from typing import Callable, Any
 
 
 class Filter:
-    def __init__(self, function: Callable, requires_context: bool = False, state_op: bool = False):
+    def __init__(
+        self, function: Callable, requires_context: bool = False, state_op: bool = False
+    ):
         if isinstance(function, Filter):
             self.__name__ = function.__qualname__
             self.function = function.function
             self.awaitable = function.awaitable
             self.requires_context = function.requires_context
+            self.key_maker = function.key_maker
 
         else:
             name = function.__qualname__
@@ -20,17 +23,21 @@ class Filter:
             self.__name__ = f"Garnet:Filter:{name}"
 
             self.function = function
-            self.awaitable = inspect.iscoroutinefunction(function) or inspect.isawaitable(function)
+            self.awaitable = inspect.iscoroutinefunction(
+                function
+            ) or inspect.isawaitable(function)
             self.requires_context = requires_context
 
-        self.key_maker = False
+        self.key_maker = None
 
         self.__qualname__ = self.__name__
         self.state_op = state_op
 
     @classmethod
     def from_def_state(cls, state_op: bool):
-        return lambda function, requires_context = False: cls(function, requires_context, state_op)
+        return lambda function, requires_context=False: cls(
+            function, requires_context, state_op
+        )
 
     def __eq__(self, value: Any):
         return _singfilter(self, lambda filter1: operator.eq(filter1, value))
@@ -61,12 +68,21 @@ def _compose_filter(filter1: Filter, filter2: Filter, operator_):
         )
 
     result = Filter.from_def_state(filter1.state_op | filter2.state_op)
-    if (filter1.awaitable & filter2.awaitable) & (filter1.requires_context & filter2.requires_context):
+    if (filter1.awaitable & filter2.awaitable) & (
+        filter1.requires_context & filter2.requires_context
+    ):
+
         async def func(event, context):
-            return operator_(await filter1.function(event, context), await filter2.function(event, context))
+            return operator_(
+                await filter1.function(event, context),
+                await filter2.function(event, context),
+            )
+
         return result(func, requires_context=True)
 
-    elif (filter1.awaitable ^ filter2.awaitable) & (filter1.requires_context ^ filter2.requires_context):
+    elif (filter1.awaitable ^ filter2.awaitable) & (
+        filter1.requires_context ^ filter2.requires_context
+    ):
         # as told, passing context to sync function has no sense
         # so awaitable function here is which requires context
         if filter1.awaitable or filter1.requires_context:
@@ -77,7 +93,10 @@ def _compose_filter(filter1: Filter, filter2: Filter, operator_):
             sync_func = filter1
 
         async def func(event, context):
-            return operator_(await async_func.function(event, context), sync_func.function(event))
+            return operator_(
+                await async_func.function(event, context), sync_func.function(event)
+            )
+
         return result(func, requires_context=True)
 
     elif filter1.awaitable ^ filter2.awaitable:
@@ -85,11 +104,15 @@ def _compose_filter(filter1: Filter, filter2: Filter, operator_):
         sync_func = filter2 if async_func == filter1 else filter1
 
         async def func(event):
-            return operator_(await async_func.function(event), sync_func.function(event))
+            return operator_(
+                await async_func.function(event), sync_func.function(event)
+            )
+
         return result(func)
 
     def func(event):
         return operator_(filter1.function(event), filter2.function(event))
+
     return result(func)
 
 
@@ -98,19 +121,21 @@ def _singfilter(filter1: Filter, operator_):
 
     if filter1.awaitable | filter1.requires_context:
         if filter1.requires_context:
+
             async def func(event, context):
                 return operator_(await filter1.function(event, context))
+
             return result(func, requires_context=True)
 
         async def func(event):
             return operator_(await filter1.function(event))
+
         return result(func)
 
     def func(event):
         return operator_(filter1.function(event))
+
     return result(func)
 
 
-__all__ = (
-    "Filter"
-)
+__all__ = "Filter"

@@ -1,7 +1,17 @@
+import operator
 import typing
 import re
 
 from .base import Filter
+
+
+def _base_len_comparator(operator_, predicted_length):
+    if predicted_length is None:
+        return Filter(lambda update: operator_(len(update.raw_text or "")))
+    else:
+        return Filter(
+            lambda update: operator_(len(update.raw_text or ""), predicted_length)
+        )
 
 
 class MessageText:
@@ -56,13 +66,23 @@ class MessageText:
         return Filter(lambda update: update.raw_text in texts)
 
     @staticmethod
-    def isdigit(reverse: bool = False) -> Filter:
-        def _f(update) -> bool:
-            return (update.raw_text or "").isdigit()
+    def isdigit() -> Filter:
+        return Filter(lambda update: (update.raw_text or "").isdigit())
 
-        if reverse:
+    class __Len:
+        def __eq__(self, length: int) -> Filter:
+            return _base_len_comparator(operator.eq, length)
 
-            def _f(update) -> bool:
-                return not (update.raw_text or "").isdigit()
+        def __gt__(self, length: int) -> Filter:
+            return _base_len_comparator(operator.gt, length)
 
-        return Filter(_f)
+        def __lt__(self, length: int) -> Filter:
+            return _base_len_comparator(operator.lt, length)
+
+        def __ge__(self, length: int) -> Filter:
+            return _base_len_comparator(operator.ge, length)
+
+        def __le__(self, length: int) -> Filter:
+            return _base_len_comparator(operator.le, length)
+
+    Len = __Len()

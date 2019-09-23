@@ -53,10 +53,7 @@ async def age_incorrect_handler(update: custom.Message):
     await update.reply(f"Please try again! Age must be digit :D")
 
 
-@bot.on(
-    state.equal("stateGender"),
-    MessageText.between("Abuser", "Dishwasher", "Cat"),
-)
+@bot.on(state.equal("stateGender"), MessageText.between("Abuser", "Dishwasher", "Cat"))
 async def gender_correct_handler(update: custom.Message, context: FSMContext):
     await context.update_data(gender=update.raw_text)
     data = await context.get_data()

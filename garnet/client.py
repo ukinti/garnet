@@ -60,7 +60,10 @@ class TelegramClient(_TelegramClient):
         self.storage = storage
         self.__bot_token = None
 
-        self.on_start, self.on_finish = PseudoFrozenList(Callable), PseudoFrozenList(Callable)
+        self.on_start, self.on_finish = (
+            PseudoFrozenList(Callable),
+            PseudoFrozenList(Callable),
+        )
         super().__init__(session, api_id, api_hash, *args, **kwargs)
 
     @classmethod
@@ -149,7 +152,9 @@ class TelegramClient(_TelegramClient):
         _has_state_checker = False
         for filter_ in filters:
             if not isinstance(filter_, (Filter, Callable)):
-                raise ValueError(f"Got {type(filter_).__qualname__}, expected Filter or Callable")
+                raise ValueError(
+                    f"Got {type(filter_).__qualname__}, expected Filter or Callable"
+                )
 
             if isinstance(filter_, Filter) and filter_.state_op:
                 _has_state_checker = True
@@ -210,12 +215,22 @@ class TelegramClient(_TelegramClient):
             filters: List[Filter] = callback.filters
             succeed = True
             key_maker_from_filters = (
-                list(filter(
-                    lambda f_: hasattr(f_, "key_maker") & f_.key_maker is not None,
-                    filters)
-                ) if filters else None
+                list(
+                    filter(
+                        lambda f_: hasattr(f_, "key_maker")
+                        & (f_.key_maker is not None),
+                        filters,
+                    )
+                )
+                if filters
+                else None
             )
-            key_maker = key_maker_from_filters[0] if key_maker_from_filters else self.make_fsm_key
+
+            key_maker = self.make_fsm_key
+            if key_maker_from_filters and isinstance(
+                key_maker_from_filters[0].key_maker, Callable
+            ):
+                key_maker = key_maker_from_filters[0].key_maker
             context = base.FSMContext(self.storage, **key_maker(event))
 
             if filters:

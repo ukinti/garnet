@@ -183,13 +183,20 @@ Usage example:
 What's more ❓
 =================
 
-Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and garnet::callbacks::base::Callback as a parent class
+Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and ``garnet::callbacks::base::Callback`` as a parent class
 
-Pretty bitwise operation supported filters::
+Pretty bitwise operation supported filters(I highly recommend to use them)::
 
     # &, |, ~, ^
     # also: ==, != (idk why)
     @bot.on(MessageText.exact(".") | MessageText.exact(".."))
+
+
+``Len`` attribute in ``MessageText`` which has cmp methods::
+
+
+    @bot.on((MessageText.Len <= 14) | (MessageText.Len >= 88))
+
 
 =====================
 🤗 Credits
