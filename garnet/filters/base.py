@@ -5,6 +5,9 @@ from typing import Callable, Any
 
 
 class Filter:
+    """
+    Base Filter object, callback container
+    """
     def __init__(
         self, function: Callable, requires_context: bool = False, state_op: bool = False
     ):
@@ -85,12 +88,9 @@ def _compose_filter(filter1: Filter, filter2: Filter, operator_):
     ):
         # as told, passing context to sync function has no sense
         # so awaitable function here is which requires context
-        if filter1.awaitable or filter1.requires_context:
-            async_func = filter1
-            sync_func = filter2
-        else:
-            async_func = filter2
-            sync_func = filter1
+        is_f1_async = filter1.awaitable or filter1.requires_context
+        async_func = filter1 if is_f1_async else filter2
+        sync_func = filter2 if is_f1_async else filter1
 
         async def func(event, context):
             return operator_(

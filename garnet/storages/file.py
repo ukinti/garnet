@@ -1,9 +1,11 @@
+# Pulled from https://github.com/aiogram/aiogram
+
 import asyncio
 import pathlib
 import typing
 from concurrent.futures import ThreadPoolExecutor
 
-from ...jsonlib import json
+from ..jsonlib import json
 from .memory import MemoryStorage
 
 executor = ThreadPoolExecutor()
@@ -11,7 +13,7 @@ loop = asyncio.get_event_loop()
 
 
 def _create_json_file(path: pathlib.Path):
-    with path.open("w") as f:
+    with path.open("w", encoding="utf-8") as f:
         f.write("{}")
 
 
@@ -39,11 +41,11 @@ class JSONStorage(MemoryStorage):
 
     @staticmethod
     def __read(path: pathlib.Path):
-        with path.open("r") as f:
+        with path.open("r", encoding="utf-8") as f:
             return json.load(f)
 
     def __write(self, path: pathlib.Path):
-        with path.open("w") as f:
+        with path.open("w", encoding="utf-8") as f:
             return json.dump(self.data, f, indent=4)
 
     async def __reload(self, delay: int):

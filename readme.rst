@@ -179,6 +179,78 @@ Usage example:
     ...
     bot.run_until_connected()
 
+
+=================================================
+📦 Router and Migrating to garnet using Router
+=================================================
+
+Think of router as just a dummy container of handlers(callbacks)
+
+`garnet::router::Router` may be helpful if you have telethon's `event.register` registered handlers. One thing: Router, I believe, is correct and more obvious way of registering event handlers. Example:
+
+**Migrate from telethon to garnet, also use for bot.on cases(soon better example)**
+
+.. code-block:: python
+
+    # my_handlers.py
+
+    # telethon register(bad) will raise Warning in garnet
+    from telethon import events
+
+    @events.register(event_type)
+    async def handler(event): ...
+
+    # garnet's telethon-like router
+    from garnet.router import TelethonRouter
+
+    router = TelethonRouter()
+
+    @router(event_type)
+    async def handler(event): ...
+
+
+
+The advantage of routers is evidence of registering handlers when you have module-separated handlers. `events.register` was doing well, but blindly importing modules to register handlers and don't use them(modules) doesn't seem like a good idea.
+
+
+Example of registering router in bot application
+
+
+.. code-block:: python
+
+    # handlers/messages.py
+    from garnet.router import Router
+
+    router = Router()
+
+    @router()
+    async def handler(event): ...
+
+    # handlers/cb_query.py
+    from garnet.events import CallbackQuery
+    from garnet.router import Router
+
+    router = Router()
+
+    @router(event=CallbackQuery())
+    async def handler(event): ...
+
+    # entry.py ()
+    from garnet import TelegramClient
+
+    from handlers import messages, cb_query
+
+    tg = TelegramClient.from_env().start_as_bot()
+    tg.bind_routers(messages, cb_query)
+    ...
+
+====================
+🍬 Context magic
+====================
+
+One of the sweetest parts of garnet. Well be described soon™️
+*this is not FSMContext don't confuse with context magic provided by contextvars*
+
 =================
 What's more ❓
 =================
@@ -196,6 +268,24 @@ Pretty bitwise operation supported filters(I highly recommend to use them)::
 
 
     @bot.on((MessageText.Len <= 14) | (MessageText.Len >= 88))
+
+
+====================================
+What should be implemented next ❓
+====================================
+
+|optionMiddleware| |optionMS|
+
+.. |optionMiddleware| image:: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%93%A5%20Middlewares
+   :target: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%93%A5%20Middlewares/vote
+.. |optionMS| image:: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient
+   :target: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient/vote
+
+===============
+About
+===============
+
+You can find me in tg by `@martin_winks <https://telegram.me/martin_winks>`_ and yeah I receive donates as well as all contributors do(support `lonamiwebs <http://paypal.me/lonamiwebs>`_ and `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_).
 
 
 =====================

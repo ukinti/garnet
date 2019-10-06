@@ -1,3 +1,5 @@
+# Pulled from https://github.com/aiogram/aiogram
+
 import copy
 import typing
 

@@ -70,6 +70,9 @@ class MessageText:
         return Filter(lambda update: (update.raw_text or "").isdigit())
 
     class __Len:
+        """
+        Text Length
+        """
         def __eq__(self, length: int) -> Filter:
             return _base_len_comparator(operator.eq, length)
 

@@ -3,7 +3,7 @@ from typing import List, Callable, Dict, Any
 from telethon.events import common
 
 from .base import Filter
-from ..fsm.storages.base import FSMContext
+from ..storages.base import FSMContext
 
 
 def ckey(

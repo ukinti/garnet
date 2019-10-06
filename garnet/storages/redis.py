@@ -1,3 +1,5 @@
+# Pulled from https://github.com/aiogram/aiogram
+
 """
 This module has redis storage for finite-state machine based on `aioredis <https://github.com/aio-libs/aioredis>`_ driver
 """
@@ -8,8 +10,8 @@ import typing
 
 import aioredis
 
+from ..jsonlib import json
 from .base import BaseStorage
-from ...jsonlib import json
 
 STATE_KEY = "state"
 STATE_DATA_KEY = "data"
