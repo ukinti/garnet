@@ -23,10 +23,6 @@ class PseudoFrozenList:
         return self.__frozen
 
     def __validation(self, val):
-        if isinstance(val, Iterable):
-            for callback_ in val:
-                self.__validation(callback_)
-
         if self.__frozen:
             raise RuntimeWarning(
                 f"{val!r} cannot be appended/removed, list is already frozen."

@@ -9,10 +9,6 @@ from telethon.sessions import Session
 from .events import (
     StopPropagation,
     NewMessage,
-    CallbackQuery,
-    ChatAction,
-    MessageEdited,
-    Album,
     common,
     builder as event_builder,
     Raw,
@@ -21,7 +17,7 @@ from .events import (
 )
 from .filters import state
 from .filters.base import Filter
-from .storages import memory, base
+from .storages import base, file
 from .callbacks.base import Callback, CURRENT_CLIENT_KEY, CALLBACK_STATE_KEY
 from .helpers.frozen_list import PseudoFrozenList
 from .router import router
@@ -49,14 +45,16 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         if storage is not None and isinstance(storage, type):
             raise ValueError("Got wrong value for storage, initialize your storage")
 
+        super().__init__(session, api_id, api_hash, *args, **kwargs)
+
         self.storage = storage
         self.__bot_token = None
 
-        self.on_start, self.on_finish = (
+        self.on_start, self.on_finish, self.on_background = (
+            PseudoFrozenList(Callable),
             PseudoFrozenList(Callable),
             PseudoFrozenList(Callable),
         )
-        super().__init__(session, api_id, api_hash, *args, **kwargs)
         self.set_current(self)
 
     @classmethod
@@ -66,7 +64,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         default_api_id: Optional[int] = None,
         default_api_hash: Optional[str] = None,
         bot_token: Optional[str] = None,
-        storage: base.BaseStorage = memory.MemoryStorage(),
+        storage: base.BaseStorage = None,
         **kwargs,
     ) -> TelegramClient:
         if any(kwarg in kwargs for kwarg in ("session", "api_id", "api_hash", "storage")):
@@ -80,17 +78,24 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             storage=storage,
             **kwargs,
         )
+
         obj.__bot_token = os.getenv(cls.Env.default_bot_token_key, bot_token)
-        cls.set_current(obj)
+        obj.set_current(obj)
+
+        if isinstance(storage, (file.JSONStorage, )):
+            async def close_storage(*_):
+                await storage.close()
+            obj.on_finish.append(close_storage)
+
         return obj
 
     @classmethod
     def from_telethon(cls, telethon: _TelethonTelegramClient) -> TelegramClient:
         if not isinstance(telethon, _TelethonTelegramClient):
             raise ValueError(f"{_TelethonTelegramClient!r} expected")
-        rew_methods = cls.__dict__
-        for rew_method in rew_methods:
-            setattr(telethon, rew_method, getattr(cls, rew_method))
+        raw_methods = cls.__dict__
+        for raw_method in raw_methods:
+            setattr(telethon, raw_method, getattr(cls, raw_method))
         telethon.set_current(telethon)
         return telethon
 
@@ -104,7 +109,10 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
     @staticmethod
     def make_fsm_key(update, *, _check=True) -> dict:
-        return {"chat": update.chat_id, "user": update.from_id}
+        try:
+            return {"chat": update.chat_id, "user": update.from_id}
+        except AttributeError:
+            raise Warning(f"Standard make_fsm_key method was not designed for {update!r}")
 
     def current_state(self, *, user, chat):
         return base.FSMContext(storage=self.storage, user=user, chat=chat)
@@ -116,8 +124,8 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             if router_.frozen:
                 router_.handlers.freeze()
 
-            for handler, event, *filters in router_.handlers:
-                self.add_event_handler(handler, event, *filters)
+            for handler, event, filters in router_.handlers:
+                self.add_event_handler(handler, event or router_.event, *filters)
 
     def on(
         self, *filters: Union[Callable, Filter], event: common.EventBuilder = NewMessage
@@ -131,26 +139,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             return f
 
         return decorator
-
-    # noinspection PyTypeChecker
-    def message_handler(self, *filters: Union[Callable, Filter]):
-        return self.on(*filters, event=NewMessage)
-
-    # noinspection PyTypeChecker
-    def callback_query_handler(self, *filters: Union[Callable, Filter]):
-        return self.on(*filters, event=CallbackQuery)
-
-    # noinspection PyTypeChecker
-    def chat_action_handler(self, *filters: Union[Callable, Filter]):
-        return self.on(*filters, event=ChatAction)
-
-    # noinspection PyTypeChecker
-    def message_edited_handler(self, *filters: Union[Callable, Filter]):
-        return self.on(*filters, event=MessageEdited)
-
-    # noinspection PyTypeChecker
-    def album_handler(self, *filters: Union[Callable, Filter]):
-        return self.on(*filters, event=Album)
 
     def add_event_handler(
         self,
@@ -227,7 +215,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             if not builder.filter(event):
                 continue
 
-            event.set_current(event)
             filters: List[Filter] = callback.filters
             succeed = True
             context = None
@@ -305,14 +292,18 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
     def run_until_disconnected(self):
         self.on_start.freeze()
+        self.on_background.freeze()
         self.on_finish.freeze()
 
-        async def bulk_await(iterable):
+        async def bulk_await(wait, background):
             # // ordered awaits
-            for callback in iterable:
+            for callback in wait:
                 await callback(self)
 
-        self.loop.run_until_complete(bulk_await(self.on_start))
+            for callback in background:
+                self.loop.create_task(callback(self))
+
+        self.loop.run_until_complete(bulk_await(self.on_start, self.on_background))
 
         if self.loop.is_running():
             return self._run_until_disconnected()
@@ -321,6 +312,11 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         except (KeyboardInterrupt, SystemError, SystemExit):
             pass
         finally:
-            self.loop.run_until_complete(bulk_await(self.on_finish))
+            self.loop.run_until_complete(bulk_await(self.on_finish, ()))
             self.disconnect()
             self.loop.stop()
+
+
+__all__ = (
+    "TelegramClient",
+)

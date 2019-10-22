@@ -15,3 +15,6 @@ class Var:
 
     def __get__(self, instance, owner):
         return self.value
+
+    def __str__(self):
+        return self.value.__str__()

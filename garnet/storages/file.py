@@ -1,4 +1,5 @@
-# Pulled from https://github.com/aiogram/aiogram
+# Source: https://github.com/aiogram/aiogram
+# MODIFIED.
 
 import asyncio
 import pathlib
@@ -13,6 +14,9 @@ loop = asyncio.get_event_loop()
 
 
 def _create_json_file(path: pathlib.Path):
+    """
+    Since `orJSON` does not provide .dump write by hand.
+    """
     with path.open("w", encoding="utf-8") as f:
         f.write("{}")
 
@@ -22,12 +26,13 @@ class JSONStorage(MemoryStorage):
     JSON File storage based on MemoryStorage
     """
 
-    def __init__(self, path: typing.Union[pathlib.Path, str], reload_each: int = 360):
+    def __init__(self, path: typing.Union[pathlib.Path, str]):
         """
+        Creates if not found, saves if process was closed properly.
+        Could be more reliable.
         :param path: file path
-        :param reload_each: reload json file every n sec
         """
-        self.path = pathlib.Path(path)
+        self.path = path = pathlib.Path(path)
         try:
             data = self.__read(path)
         except FileNotFoundError:
@@ -36,24 +41,17 @@ class JSONStorage(MemoryStorage):
 
         super().__init__(data)
 
-        if reload_each is False:
-            loop.create_task(self.__reload(reload_each))
-
-    @staticmethod
-    def __read(path: pathlib.Path):
+    # noinspection PyMethodMayBeStatic
+    def __read(self, path: pathlib.Path):
         with path.open("r", encoding="utf-8") as f:
-            return json.load(f)
+            return json.loads(f.read())
 
-    def __write(self, path: pathlib.Path):
+    def _save(self, path: pathlib.Path):
         with path.open("w", encoding="utf-8") as f:
-            return json.dump(self.data, f, indent=4)
+            return f.write(json.dumps(self.data).decode())
 
-    async def __reload(self, delay: int):
-        while 1:
-            await asyncio.sleep(delay)
-            await loop.run_in_executor(executor, self.__write, self.path)
-
-    async def close(self):
+    async def save(self, close: bool = False):
         if self.data:
-            await loop.run_in_executor(executor, self.__write, self.path)
-        await super().close()
+            await loop.run_in_executor(executor, self.save, self.path)
+        if close:
+            await super().close()

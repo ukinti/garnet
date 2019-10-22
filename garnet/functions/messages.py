@@ -5,13 +5,30 @@ from telethon import hints, types, custom
 from ..events.newmessage import NewMessage
 
 
-def event() -> custom.Message:
+def message() -> custom.Message:
     # noinspection PyTypeChecker
     return NewMessage.Event.current()  # type: ignore
 
 
+# noinspection PyPep8Naming
+class current(object):
+    @property
+    def chat_id(*self) -> typing.Union[type(None), int]:
+        """
+        get current chat's ID
+        """
+        return message().chat_id
+
+    @property
+    def chat(*self) -> typing.Union[types.User, types.Chat, types.Channel]:
+        """
+        get current chat
+        """
+        return message().chat
+
+
 async def respond(
-        message: 'hints.MessageLike' = '',
+        message_: 'hints.MessageLike' = '',
         *,
         reply_to: 'typing.Union[int, types.Message]' = None,
         parse_mode: typing.Optional[str] = (),
@@ -24,11 +41,11 @@ async def respond(
         schedule: 'hints.DateLike' = None
         ) -> 'types.Message':
 
-    return await event().respond(**locals())
+    return await message().respond(**locals())
 
 
 async def reply(
-        message: 'hints.MessageLike' = '',
+        message_: 'hints.MessageLike' = '',
         *,
         reply_to: 'typing.Union[int, types.Message]' = None,
         parse_mode: typing.Optional[str] = (),
@@ -41,4 +58,9 @@ async def reply(
         schedule: 'hints.DateLike' = None
         ) -> 'types.Message':
 
-    return await event().reply(**locals())
+    return await message().reply(**locals())
+
+
+__all__ = (
+    "current", "reply", "respond", "message"
+)

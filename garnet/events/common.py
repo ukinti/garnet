@@ -145,6 +145,7 @@ class EventCommon(ChatGetter, abc.ABC, ctx.ContextInstanceMixin):
         self._client = None
         self._message_id = msg_id
         self.original_update = None
+        self.set_current(self)
 
     def _set_client(self, client):
         """

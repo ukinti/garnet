@@ -18,13 +18,11 @@ def ckey(
     return f_
 
 
-custom_key = made_up_key = from_key = ckey
+custom_key = with_key = from_key = ckey
 
 
-def exact(state: str, reverse: bool = False) -> Filter:
+def exact(state: str) -> Filter:
     async def _f(event, context):
-        if reverse:
-            return (await context.get_state()) != state
         return (await context.get_state()) == state
 
     return Filter(_f, requires_context=True, state_op=True)
@@ -37,15 +35,10 @@ def between(states: List[str]) -> Filter:
     return Filter(_f, requires_context=True, state_op=True)
 
 
-def equal(state: str) -> Filter:
-    return exact(state)
-
-
-def not_equal(state: str) -> Filter:
-    return exact(state, reverse=True)
-
-
 def every() -> Filter:
+    """
+    In any state
+    """
     async def _f(event, context):
         return (await context.get_state()) is not None
 
@@ -54,12 +47,10 @@ def every() -> Filter:
 
 __all__ = (
     "every",
-    "equal",
     "exact",
-    "not_equal",
     "between",
     "ckey",
     "custom_key",
-    "made_up_key",
+    "with_key",
     "from_key",
 )

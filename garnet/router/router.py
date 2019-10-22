@@ -1,27 +1,29 @@
-import abc
+from abc import ABC, abstractmethod
+from typing import Union, Callable
 
-from ..events import common
+from ..events import common, callbackquery, newmessage, chataction, messageedited
 from ..helpers.frozen_list import PseudoFrozenList
 from ..filters import Filter
 from ..callbacks.base import Callback
 
 
-class AbstractRouter(abc.ABC):
-    def __init__(self, frozen: bool = False):
+class AbstractRouter(ABC):
+    def __init__(self, event: common.EventBuilder, frozen: bool = False):
         """
         Abstract Router
         :param frozen: While registering router it can be frozen once.
         """
+        self.event = event
         self.frozen = frozen
         self.handlers = PseudoFrozenList[tuple]
 
-    @abc.abstractmethod
+    @abstractmethod
     def register(self, *args, **kwargs):
         raise NotImplementedError()
 
     __call__ = on = register
 
-    @abc.abstractmethod
+    @abstractmethod
     def non_blocking(self, *args, **kwargs):
         """
         Register handlers in non-blocking way.
@@ -34,7 +36,25 @@ class AbstractRouter(abc.ABC):
         raise NotImplementedError()
 
 
-class TelethonRouter(AbstractRouter):
+class _BotoRouter(AbstractRouter, ABC):
+    # noinspection PyTypeChecker
+    def message_handler(self, *filters: Union[Callable, Filter]):
+        return self.register(*filters, event=newmessage.NewMessage)
+
+    # noinspection PyTypeChecker
+    def callback_query_handler(self, *filters: Union[Callable, Filter]):
+        return self.register(*filters, event=callbackquery.CallbackQuery)
+
+    # noinspection PyTypeChecker
+    def chat_action_handler(self, *filters: Union[Callable, Filter]):
+        return self.register(*filters, event=chataction.ChatAction)
+
+    # noinspection PyTypeChecker
+    def message_edited_handler(self, *filters: Union[Callable, Filter]):
+        return self.register(*filters, event=messageedited.MessageEdited)
+
+
+class TelethonRouter(_BotoRouter):
     """
     Telethon's TgClient.__on__(event) signature followed
 
@@ -44,7 +64,7 @@ class TelethonRouter(AbstractRouter):
     """
 
     def __init__(self, frozen: bool = False):
-        super().__init__(frozen)
+        super().__init__(None, frozen)
 
     def register(self, event: common.EventBuilder):
         def decorator(f):
@@ -65,16 +85,16 @@ class TelethonRouter(AbstractRouter):
         return decorator
 
 
-class Router(AbstractRouter):
+class Router(_BotoRouter):
     """
-    Garnet's TgClient.on(*filters, event=NewMessage) signature followed
+    Garnet's TelegramClient.on(*filters, event=NewMessage) signature followed
     """
-    def __init__(self, frozen: bool = False):
-        super().__init__(frozen)
+    def __init__(self, event: common.EventBuilder = None, frozen: bool = False):
+        super().__init__(event, frozen)
 
     def register(self, *filters: Filter, event: common.EventBuilder = None):
         def decorator(f):
-            self.handlers.append((f, event, filters))
+            self.handlers.append((f, event or self.event, filters))
             return f
 
         return decorator
@@ -85,7 +105,7 @@ class Router(AbstractRouter):
         def decorator(f):
             c = Callback(f)
             c.continue_prop = True
-            self.handlers.append((c, event, filters))
+            self.handlers.append((c, event or self.event, filters))
             return f
 
         return decorator

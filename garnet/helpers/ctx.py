@@ -1,6 +1,7 @@
 from __future__ import annotations
 import typing
 
+# noinspection PyPackageRequirements
 import contextvars
 
 Type = typing.TypeVar("Type")
@@ -18,7 +19,7 @@ class ContextInstanceMixin:
         return cls.__ctx_var.get()
 
     @classmethod
-    def set_current(cls: typing.Type[Type], value: Type):
+    def set_current(cls: typing.Type[Type], value: Type) -> typing.NoReturn:
         if not isinstance(value, cls):
             raise ValueError(f"Got wrong instance, expected {cls!r} got {value!r}")
 

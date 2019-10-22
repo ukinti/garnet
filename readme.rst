@@ -51,7 +51,7 @@ Pomegranate implements updates dispatching and checks callback's filters wrappin
 
 ``Filter`` object is the essential part of Pomegranate, the do state checking and other stuff.
 
-Basically, it's ``func`` from ``MyEventBuilder(func=lambda _: <bool>)`` but a way more complicated and not stored in EventBuilder, it's stored in callback object
+Basically, it's ``func`` from ``MyEventBuilder(func=lambda self: <bool>)`` but a way more complicated and not stored in EventBuilder, it's stored in callback object
 
 
 Useful filters
@@ -130,26 +130,11 @@ If you want to write your own filter, do it.
 
 So the handler can take strict ``context`` argument and also ignore it
 
-
-=================
-🐙 Easy handlers
-=================
-
-``garnet::TelegramClient`` has several handlers::
-
-
-    .message_handler(*f)
-    .callback_query_handler(*f)
-    .chat_action_handler(*f)
-    .message_edited_handler(*f)
-    .album_handler(*f):
-
-
 ======================
 On start|finish
 ======================
 
-``garnet::TelegramClient`` contains two lists on_start and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
+``garnet::TelegramClient`` contains three lists on_start on_background and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
 ``PseudoFrozenList`` has three main methods::
 
     .append(*coro)
@@ -177,6 +162,12 @@ Usage example:
     bot.on_start.append(db.open_pool)
     bot.on_finish.append(db.close_pool)
     ...
+
+    @bot.on_background
+    async def xyz(cl: TelegramClient):
+        while True:
+           ...
+
     bot.run_until_connected()
 
 
@@ -244,12 +235,38 @@ Example of registering router in bot application
     tg.bind_routers(messages, cb_query)
     ...
 
+`TelethonRouter` and `Router` both have following remarkable methods:
+
+::
+
+    .message_handler(*filters)
+    .callback_query_handler(*filters)
+    .chat_action_handler(*filters)
+    .message_edited_handler(*filters)
+    .album_handler(*filters)
+
 ====================
 🍬 Context magic
 ====================
 
-One of the sweetest parts of garnet. Well be described soon™️
+One of the sweetest parts of garnet. Using `contextvars` we reach incredibly beautiful code :D
 *this is not FSMContext don't confuse with context magic provided by contextvars*
+
+As an example, bot that doesn't requires `TelegramClient` to answer messages directly.
+
+.. code-block:: python
+    from garnet.functions.messages import reply, message, respond
+
+    @bot.message_handler()
+    async def handler():
+        # message() - function to get current Message event
+        await message().respond("ok")
+        await message().reply("ok")
+        # the same result, but shortcuts
+        await respond("ok")
+        await reply("Ok")
+
+# This parts are in development, you can contribute!
 
 =================
 What's more ❓
@@ -257,9 +274,9 @@ What's more ❓
 
 Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and ``garnet::callbacks::base::Callback`` as a parent class
 
-Pretty bitwise operation supported filters(I highly recommend to use them)::
+Awesome bitwise operation supported filters(I highly recommend to use them)::
 
-    # &, |, ~, ^
+    # & (conjunction), | (disjunction), ~ (inversion), ^ (exclusive disjunction)
     # also: ==, != (idk why)
     @bot.on(MessageText.exact(".") | MessageText.exact(".."))
 

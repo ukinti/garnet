@@ -48,5 +48,5 @@ setup(
     install_requires=get_requirements(),
     package_data={"": ["requirements.txt"]},
     include_package_data=False,
-    keywords="add-on telethon fsm",
+    keywords="add-on telethon fsm filters router contextvars",
 )

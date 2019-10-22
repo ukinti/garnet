@@ -1,4 +1,4 @@
-# Pulled from https://github.com/aiogram/aiogram
+# Source: https://github.com/aiogram/aiogram
 
 """
 This module has redis storage for finite-state machine based on `aioredis <https://github.com/aio-libs/aioredis>`_ driver

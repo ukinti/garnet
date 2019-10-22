@@ -138,4 +138,7 @@ def _singfilter(filter1: Filter, operator_):
     return result(func)
 
 
-__all__ = "Filter"
+__all__ = (
+    "Filter",
+
+)
