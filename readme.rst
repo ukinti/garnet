@@ -51,7 +51,7 @@ Pomegranate implements updates dispatching and checks callback's filters wrappin
 
 ``Filter`` object is the essential part of Pomegranate, the do state checking and other stuff.
 
-Basically, it's ``func`` from ``MyEventBuilder(func=lambda _: <bool>)`` but a way more complicated and not stored in EventBuilder, it's stored in callback object
+Basically, it's ``func`` from ``MyEventBuilder(func=lambda self: <bool>)`` but a way more complicated and not stored in EventBuilder, it's stored in callback object
 
 
 Useful filters
@@ -130,26 +130,11 @@ If you want to write your own filter, do it.
 
 So the handler can take strict ``context`` argument and also ignore it
 
-
-=================
-🐙 Easy handlers
-=================
-
-``garnet::TelegramClient`` has several handlers::
-
-
-    .message_handler(*f)
-    .callback_query_handler(*f)
-    .chat_action_handler(*f)
-    .message_edited_handler(*f)
-    .album_handler(*f):
-
-
 ======================
 On start|finish
 ======================
 
-``garnet::TelegramClient`` contains two lists on_start and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
+``garnet::TelegramClient`` contains three lists on_start on_background and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
 ``PseudoFrozenList`` has three main methods::
 
     .append(*coro)
@@ -177,7 +162,111 @@ Usage example:
     bot.on_start.append(db.open_pool)
     bot.on_finish.append(db.close_pool)
     ...
+
+    @bot.on_background
+    async def xyz(cl: TelegramClient):
+        while True:
+           ...
+
     bot.run_until_connected()
+
+
+=================================================
+📦 Router and Migrating to garnet using Router
+=================================================
+
+Think of router as just a dummy container of handlers(callbacks)
+
+`garnet::router::Router` may be helpful if you have telethon's `event.register` registered handlers. One thing: Router, I believe, is correct and more obvious way of registering event handlers. Example:
+
+**Migrate from telethon to garnet, also use for bot.on cases(soon better example)**
+
+.. code-block:: python
+
+    # my_handlers.py
+
+    # telethon register(bad) will raise Warning in garnet
+    from telethon import events
+
+    @events.register(event_type)
+    async def handler(event): ...
+
+    # garnet's telethon-like router
+    from garnet.router import TelethonRouter
+
+    router = TelethonRouter()
+
+    @router(event_type)
+    async def handler(event): ...
+
+
+
+The advantage of routers is evidence of registering handlers when you have module-separated handlers. `events.register` was doing well, but blindly importing modules to register handlers and don't use them(modules) doesn't seem like a good idea.
+
+
+Example of registering router in bot application
+
+
+.. code-block:: python
+
+    # handlers/messages.py
+    from garnet.router import Router
+
+    router = Router()
+
+    @router()
+    async def handler(event): ...
+
+    # handlers/cb_query.py
+    from garnet.events import CallbackQuery
+    from garnet.router import Router
+
+    router = Router()
+
+    @router(event=CallbackQuery())
+    async def handler(event): ...
+
+    # entry.py ()
+    from garnet import TelegramClient
+
+    from handlers import messages, cb_query
+
+    tg = TelegramClient.from_env().start_as_bot()
+    tg.bind_routers(messages, cb_query)
+    ...
+
+`TelethonRouter` and `Router` both have following remarkable methods:
+
+::
+
+    .message_handler(*filters)
+    .callback_query_handler(*filters)
+    .chat_action_handler(*filters)
+    .message_edited_handler(*filters)
+    .album_handler(*filters)
+
+====================
+🍬 Context magic
+====================
+
+One of the sweetest parts of garnet. Using `contextvars` we reach incredibly beautiful code :D
+*this is not FSMContext don't confuse with context magic provided by contextvars*
+
+As an example, bot that doesn't requires `TelegramClient` to answer messages directly.
+
+.. code-block:: python
+    from garnet.functions.messages import reply, message, respond
+
+    @bot.message_handler()
+    async def handler():
+        # message() - function to get current Message event
+        await message().respond("ok")
+        await message().reply("ok")
+        # the same result, but shortcuts
+        await respond("ok")
+        await reply("Ok")
+
+# This parts are in development, you can contribute!
 
 =================
 What's more ❓
@@ -185,9 +274,9 @@ What's more ❓
 
 Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and ``garnet::callbacks::base::Callback`` as a parent class
 
-Pretty bitwise operation supported filters(I highly recommend to use them)::
+Awesome bitwise operation supported filters(I highly recommend to use them)::
 
-    # &, |, ~, ^
+    # & (conjunction), | (disjunction), ~ (inversion), ^ (exclusive disjunction)
     # also: ==, != (idk why)
     @bot.on(MessageText.exact(".") | MessageText.exact(".."))
 
@@ -196,6 +285,24 @@ Pretty bitwise operation supported filters(I highly recommend to use them)::
 
 
     @bot.on((MessageText.Len <= 14) | (MessageText.Len >= 88))
+
+
+====================================
+What should be implemented next ❓
+====================================
+
+|optionMiddleware| |optionMS|
+
+.. |optionMiddleware| image:: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%93%A5%20Middlewares
+   :target: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%93%A5%20Middlewares/vote
+.. |optionMS| image:: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient
+   :target: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient/vote
+
+===============
+About
+===============
+
+You can find me in tg by `@martin_winks <https://telegram.me/martin_winks>`_ and yeah I receive donates as well as all contributors do(support `lonamiwebs <http://paypal.me/lonamiwebs>`_ and `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_).
 
 
 =====================

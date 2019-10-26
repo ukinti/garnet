@@ -1,16 +1,15 @@
-from telethon import events
-
+from . import events
 from .client import TelegramClient
-from .fsm.storages.base import BaseStorage, FSMContext, FSMContextProxy
-from .filters import MessageText, Filter, state
+from .storages.base import BaseStorage, FSMContext, FSMContextProxy
+from .filters import Filter, state, text
 from .jsonlib import json
 from .callbacks.base import Callback
 
 CurrentState = state
+MessageText = text
 
 __all__ = (
     "BaseStorage",
-    "MessageText",
     "Filter",
     "json",
     "TelegramClient",
@@ -18,6 +17,8 @@ __all__ = (
     "FSMContext",
     "FSMContextProxy",
     "state",
-    "CurrentState",  # convenient
+    "CurrentState",  # bc&c
+    "text",
+    "MessageText",  # bc&c
     "Callback",
-)  # noqa :P
+)

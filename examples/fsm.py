@@ -13,7 +13,7 @@ buttons = (
 
 # /*
 #  * get configurations from environment variable
-#  * look pomegranate.TelegramClient::Env for more
+#  * look garnet.TelegramClient::Env for more
 #  */
 bot = TelegramClient.from_env().start_as_bot()
 
@@ -41,19 +41,19 @@ async def name_handler(update: custom.Message, context: FSMContext):
     await context.set_state("stateAge")
 
 
-@bot.on(state.exact("stateAge"), MessageText.isdigit())
+@bot.on(state.exact("stateAge") & MessageText.isdigit())
 async def age_correct_handler(update: custom.Message, context: FSMContext):
     await context.update_data(age=int(update.raw_text))
     await update.reply(f"Cool! Now please select your gender:", buttons=buttons)
     await context.set_state("stateGender")
 
 
-@bot.on(state.exact("stateAge"), not MessageText.isdigit())
+@bot.on(state.exact("stateAge") & ~MessageText.isdigit())
 async def age_incorrect_handler(update: custom.Message):
     await update.reply(f"Please try again! Age must be digit :D")
 
 
-@bot.on(state.equal("stateGender"), MessageText.between("Abuser", "Dishwasher", "Cat"))
+@bot.on(state.exact("stateGender") & MessageText.between("Abuser", "Dishwasher", "Cat"))
 async def gender_correct_handler(update: custom.Message, context: FSMContext):
     await context.update_data(gender=update.raw_text)
     data = await context.get_data()

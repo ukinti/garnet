@@ -1,3 +1,5 @@
+# Source: https://github.com/aiogram/aiogram
+
 import copy
 import typing
 from warnings import warn

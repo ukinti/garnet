@@ -19,6 +19,8 @@ class Callback:
         self.requires_context = False
         self.requires_client = False
         self.key_maker = None
+        self.continue_prop = False
+        self.empty_arg_handler = False
 
         if isinstance(callback, Callable):
             self.__call__ = callback
@@ -34,10 +36,14 @@ class Callback:
         args_cp = args.args.copy()
         args_cp.extend(args.kwonlyargs)
 
-        if CALLBACK_STATE_KEY in args_cp:
-            self.requires_context = True
+        if not args_cp:
+            self.empty_arg_handler = True
 
-        if CURRENT_CLIENT_KEY in args_cp:
-            self.requires_client = True
+        else:
+            if CALLBACK_STATE_KEY in args_cp:
+                self.requires_context = True
+
+            if CURRENT_CLIENT_KEY in args_cp:
+                self.requires_client = True
 
         del args_cp
