@@ -13,18 +13,33 @@ def message() -> custom.Message:
 # noinspection PyPep8Naming
 class current(object):
     @property
-    def chat_id(*self) -> typing.Union[type(None), int]:
+    def chat_id(self) -> typing.Optional[int]:
         """
         get current chat's ID
         """
         return message().chat_id
 
     @property
-    def chat(*self) -> typing.Union[types.User, types.Chat, types.Channel]:
+    def chat(self) -> typing.Union[types.User, types.Chat, types.Channel]:
         """
         get current chat
         """
         return message().chat
+
+    @property
+    def fmt_text(self) -> typing.Optional[str]:
+        """
+        Get formatted text with respect to current parse_mode
+        e.g. <code>...</code>
+        """
+        return message().text
+
+    @property
+    def text(self) -> typing.Optional[str]:
+        """
+        Get RAW text from update, text without formatting
+        """
+        return message().raw_text
 
 
 async def respond(
