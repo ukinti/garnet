@@ -30,13 +30,13 @@ def get_requirements():
 setup(
     name="garnet",
     version="0.1.6",
-    packages=find_packages(exclude=("examples.*",)),
+    packages=find_packages(exclude=("examples.*", "static.*")),
     url="https://github.com/uwinx/pomegranate",
     license="MIT",
     author="Martin Winks",
     requires_python=">=3.6",
     author_email="mpa@snejugal.ru",
-    description="Pomegranate is a telethon add-on",
+    description="Garnet is a telethon add-on",
     long_description=description,
     classifiers=[
         "Environment :: Web Environment",
@@ -48,5 +48,5 @@ setup(
     install_requires=get_requirements(),
     package_data={"": ["requirements.txt"]},
     include_package_data=False,
-    keywords="add-on telethon fsm filters router contextvars",
+    keywords="asyncio add-on telethon fsm filters router contextvars",
 )
