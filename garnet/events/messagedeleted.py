@@ -1,3 +1,5 @@
+# MIT / Copyright (c) 2016-2019 LonamiWebs
+
 from telethon.tl import types
 
 from .common import EventBuilder, EventCommon, name_inner_event

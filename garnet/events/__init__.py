@@ -1,3 +1,5 @@
+# MIT / Copyright (c) 2016-2019 LonamiWebs
+
 # todo:
 #   remove .register and .unregister
 #   rewrite events EventCommon/EventBuilder(optimize .build)

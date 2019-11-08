@@ -1,5 +1,5 @@
 # PseudoFrozenList can be frozen at the some point of time
-from typing import List, Iterable, Any
+from typing import List, Any
 import itertools
 
 

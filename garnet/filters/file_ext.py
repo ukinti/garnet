@@ -36,7 +36,7 @@ class ExtensionCollection:
 
 
 class File:
-    Extensions: ExtensionCollection = ExtensionCollection()
+    Extensions = ExtensionCollection()
 
     @classmethod
     def between(cls, *extensions: str):

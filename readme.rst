@@ -1,7 +1,7 @@
-🍷 Pomegranate a.k.a garnet
+🍷 Garnet
 ===================================
 
-As good as pomegranate wine.
+Garnet — bot-friendly telethon
 -----------------------------------
 
 .. invisible-content-till-nel
@@ -130,9 +130,9 @@ If you want to write your own filter, do it.
 
 So the handler can take strict ``context`` argument and also ignore it
 
-======================
+-----------------------
 On start|finish
-======================
+-----------------------
 
 ``garnet::TelegramClient`` contains three lists on_start on_background and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
 ``PseudoFrozenList`` has three main methods::
@@ -171,9 +171,9 @@ Usage example:
     bot.run_until_connected()
 
 
-=================================================
+-------------------------------------------------
 📦 Router and Migrating to garnet using Router
-=================================================
+-------------------------------------------------
 
 Think of router as just a dummy container of handlers(callbacks)
 
@@ -245,9 +245,9 @@ Example of registering router in bot application
     .message_edited_handler(*filters)
     .album_handler(*filters)
 
-====================
+--------------------
 🍬 Context magic
-====================
+--------------------
 
 One of the sweetest parts of garnet. Using `contextvars` we reach incredibly beautiful code :D
 *this is not FSMContext don't confuse with context magic provided by contextvars*
@@ -268,9 +268,9 @@ As an example, bot that doesn't requires `TelegramClient` to answer messages dir
 
 # This parts are in development, you can contribute!
 
-=================
+-----------------
 What's more ❓
-=================
+-----------------
 
 Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and ``garnet::callbacks::base::Callback`` as a parent class
 
@@ -287,9 +287,11 @@ Awesome bitwise operation supported filters(I highly recommend to use them)::
     @bot.on((MessageText.Len <= 14) | (MessageText.Len >= 88))
 
 
-====================================
+Using `client = TelegramClient.start` assignment and start client on the fly, make annotation or typing.cast to have better hints.
+
+------------------------------------
 What should be implemented next ❓
-====================================
+------------------------------------
 
 |optionMiddleware| |optionMS|
 
@@ -298,15 +300,15 @@ What should be implemented next ❓
 .. |optionMS| image:: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient
    :target: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient/vote
 
-===============
+---------------
 About
-===============
+---------------
 
 You can find me in tg by `@martin_winks <https://telegram.me/martin_winks>`_ and yeah I receive donates as well as all contributors do(support `lonamiwebs <http://paypal.me/lonamiwebs>`_ and `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_).
 
 
-=====================
+---------------------
 🤗 Credits
-=====================
+---------------------
 
 Finite-state machine was ported from cool BotAPI library 'aiogram', special thanks to Alex_
