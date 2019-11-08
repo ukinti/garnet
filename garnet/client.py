@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Callable, Sequence, List, Optional
+from typing import Union, Callable, Sequence, List, Optional, NoReturn
 import asyncio
 import os
 
@@ -17,7 +17,7 @@ from .events import (
 )
 from .filters import state
 from .filters.base import Filter
-from .storages import base, file
+from .storages import base, file, memory
 from .callbacks.base import Callback, CURRENT_CLIENT_KEY, CALLBACK_STATE_KEY
 from .helpers.frozen_list import PseudoFrozenList
 from .router import router
@@ -89,16 +89,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
         return obj
 
-    @classmethod
-    def from_telethon(cls, telethon: _TelethonTelegramClient) -> TelegramClient:
-        if not isinstance(telethon, _TelethonTelegramClient):
-            raise ValueError(f"{_TelethonTelegramClient!r} expected")
-        raw_methods = cls.__dict__
-        for raw_method in raw_methods:
-            setattr(telethon, raw_method, getattr(cls, raw_method))
-        telethon.set_current(telethon)
-        return telethon
-
     def start_as_bot(self, token: str = None) -> TelegramClient:
         self.set_current(self)
         return self.start(
@@ -107,8 +97,8 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             )
         )
 
-    @staticmethod
-    def make_fsm_key(update, *, _check=True) -> dict:
+    @classmethod
+    def make_fsm_key(cls, update, *, _check=True) -> dict:
         try:
             return {"chat": update.chat_id, "user": update.from_id}
         except AttributeError:
@@ -119,7 +109,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
     # end-fsm-key-region
 
-    def bind_routers(self, *routers: router.AbstractRouter):
+    def bind_routers(self, *routers: router.AbstractRouter) -> NoReturn:
         for router_ in routers:
             if router_.frozen:
                 router_.handlers.freeze()
@@ -163,6 +153,10 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             filters = list(filters)
             filters.append(~state.every())
             filters = tuple(filters)
+
+        elif _has_state_checker and self.storage is None:
+            self._log[__name__].warning("No storage was set, but state checker was found, using MemoryStorage for now")
+            self.storage = memory.MemoryStorage()
 
         if not isinstance(callback, Callback):
             callback = Callback(callback, *filters)
@@ -268,7 +262,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
                     coro = callback.__call__(event, **kwargs)
                 else:
-                    coro = callback.__call__()
+                    coro = callback.__call__(**kwargs)
 
                 if not callback.continue_prop:
                     return await coro

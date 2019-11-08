@@ -1,3 +1,5 @@
+# MIT / Copyright (c) 2016-2019 LonamiWebs
+
 from .common import EventCommon
 
 

@@ -1,3 +1,5 @@
+# MIT / Copyright (c) 2016-2019 LonamiWebs
+
 from telethon import utils
 from telethon.tl import types
 

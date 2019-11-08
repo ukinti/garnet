@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, Callable
+from typing import Union, Callable, NoReturn
 
 from ..events import common, callbackquery, newmessage, chataction, messageedited
 from ..helpers.frozen_list import PseudoFrozenList
@@ -8,7 +8,12 @@ from ..callbacks.base import Callback
 
 
 class AbstractRouter(ABC):
-    def __init__(self, event: common.EventBuilder, frozen: bool = False):
+    def __init__(
+        self,
+        event: common.EventBuilder,
+        frozen: bool = False,
+        *filters: Filter,
+    ):
         """
         Abstract Router
         :param frozen: While registering router it can be frozen once.
@@ -16,6 +21,7 @@ class AbstractRouter(ABC):
         self.event = event
         self.frozen = frozen
         self.handlers = PseudoFrozenList[tuple]
+        self.filters = filters
 
     @abstractmethod
     def register(self, *args, **kwargs):
@@ -36,25 +42,31 @@ class AbstractRouter(ABC):
         raise NotImplementedError()
 
 
-class _BotoRouter(AbstractRouter, ABC):
+class BaseRouter(AbstractRouter, ABC):
     # noinspection PyTypeChecker
     def message_handler(self, *filters: Union[Callable, Filter]):
-        return self.register(*filters, event=newmessage.NewMessage)
+        return self.register(*(*filters, *self.filters), event=newmessage.NewMessage)
 
     # noinspection PyTypeChecker
     def callback_query_handler(self, *filters: Union[Callable, Filter]):
-        return self.register(*filters, event=callbackquery.CallbackQuery)
+        return self.register(*(*filters, *self.filters), event=callbackquery.CallbackQuery)
 
     # noinspection PyTypeChecker
     def chat_action_handler(self, *filters: Union[Callable, Filter]):
-        return self.register(*filters, event=chataction.ChatAction)
+        return self.register(*(*filters, *self.filters), event=chataction.ChatAction)
 
     # noinspection PyTypeChecker
     def message_edited_handler(self, *filters: Union[Callable, Filter]):
-        return self.register(*filters, event=messageedited.MessageEdited)
+        return self.register(*(*filters, *self.filters), event=messageedited.MessageEdited)
+
+    def add_router(self, router: 'BaseRouter') -> NoReturn:
+        if type(self) != type(router):
+            raise ValueError(f"Can bind {router!r} into {self!r}")
+        for handler in router.handlers:
+            self.handlers.append(handler)
 
 
-class TelethonRouter(_BotoRouter):
+class TelethonRouter(BaseRouter):
     """
     Telethon's TgClient.__on__(event) signature followed
 
@@ -85,16 +97,16 @@ class TelethonRouter(_BotoRouter):
         return decorator
 
 
-class Router(_BotoRouter):
+class Router(BaseRouter):
     """
     Garnet's TelegramClient.on(*filters, event=NewMessage) signature followed
     """
-    def __init__(self, event: common.EventBuilder = None, frozen: bool = False):
-        super().__init__(event, frozen)
+    def __init__(self, event: common.EventBuilder = None, frozen: bool = False, *filters):
+        super().__init__(event, frozen, *filters)
 
     def register(self, *filters: Filter, event: common.EventBuilder = None):
         def decorator(f):
-            self.handlers.append((f, event or self.event, filters))
+            self.handlers.append((f, event or self.event, (*filters, *self.filters)))
             return f
 
         return decorator
@@ -105,7 +117,7 @@ class Router(_BotoRouter):
         def decorator(f):
             c = Callback(f)
             c.continue_prop = True
-            self.handlers.append((c, event or self.event, filters))
+            self.handlers.append((c, event or self.event, (*filters, *self.filters)))
             return f
 
         return decorator

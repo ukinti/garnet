@@ -51,11 +51,7 @@ def isdigit() -> Filter:
     return Filter(lambda update: (update.raw_text or "").isdigit())
 
 
-class __Len:
-    """
-    Text Length
-    """
-
+class MessageLenMeta(type):
     def __eq__(self, length: int) -> Filter:
         return _base_len_comparator(operator.eq, length)
 
@@ -72,4 +68,7 @@ class __Len:
         return _base_len_comparator(operator.le, length)
 
 
-Len = __Len()  # global var
+class Len(metaclass=MessageLenMeta):
+    """
+    Text Length
+    """
