@@ -34,7 +34,6 @@ setup(
     url="https://github.com/uwinx/pomegranate",
     license="MIT",
     author="Martin Winks",
-    requires_python=">=3.6",
     author_email="mpa@snejugal.ru",
     description="Garnet is a telethon add-on",
     long_description=description,
