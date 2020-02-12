@@ -1,3 +1,4 @@
+import functools
 import operator
 import typing
 import re
@@ -26,10 +27,11 @@ def startswith(prefix: str) -> Filter:
     )
 
 
-def commands(*cmd: str, prefixes: typing.Union[str, typing.Iterable[str]] = "/") -> Filter:
+def commands(
+    *cmd: str, prefixes: typing.Union[str, typing.Iterable[str]] = "/"
+) -> Filter:
     return Filter(
-        lambda update:
-        isinstance(update.text, str)
+        lambda update: isinstance(update.text, str)
         and any(update.text.startswith(prefix) for prefix in prefixes)
         and update.text.split()[0][1:] in cmd
     )

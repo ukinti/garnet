@@ -84,7 +84,7 @@ Useful filters
     async def secret_handler(message: custom.Message):
         await message.reply("Secret entered correctly! Welcome!")
 
-MessageText includes following comparisons all returning <bool>
+MessageText or text(``from garnet import text``) includes following comparisons all returning <bool>
  - ``.exact(x)`` -> ``event.raw_text == x``
  - ``.commands(*x)`` -> ``event.raw_text.split()[0][1:] in x``
  - ``.match(x)`` -> ``re.compile(x).match(event.raw_text)``
@@ -94,19 +94,17 @@ MessageText includes following comparisons all returning <bool>
 
 
 
-2) 👀 **state module**  [``from garnet import state``]
+2) 👀 **CurrentState class**  [``from garnet import CurrentState``]
 
-Once great minds decided that state checking will be in filters without adding ``state`` to on func params and further storing state in ``callback.(arg)``
-``state`` module methods return ``Filter`` as well. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMProxy is passed if true
+Once great minds decided that state checking will be in filters without adding ``state`` as handler decorator parameter and further storing state in ``callback.(arg)``
+``CurrentState`` class methods return ``Filter``. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMProxy is passed if true
 
 See `FSM example <https://github.com/uwinx/pomegranate/blob/master/examples/fsm.py>`_ to understand how CurrentState works
 
 Includes following methods all returning <bool>
- - ``.exact(x)`` -> ``await context.get_state() == x``
- - ``.between(x)`` -> ``await context.get_state() in x``
- - ``.equal(x)`` -> ``.exact(x)``
- - ``.not_equal(x)`` -> ``!.exact(x)``
- - ``.every()`` -> ``(await context.get_state) is not None``
+ - ``.exact(x)`` or ``CurrentState == x`` -> ``await context.get_state() == x``
+ - ``CurrentState == [x, y, z]`` -> ``await context.get_state() in [x, y, z]``
+ - ``CurrentState == all`` or ``CurrentState == any`` -> ``await context.get_state() is not None``
 
 
 3) 🦔 Custom **Filter**
@@ -137,11 +135,12 @@ On start|finish
 ``garnet::TelegramClient`` contains three lists on_start on_background and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
 ``PseudoFrozenList`` has three main methods::
 
-    .append(*coro)
-    .remove(*coro)
+    .append(*items)
+    .remove(*items)
     .freeze()
+    .__call__(func)   # for shiny decorator
 
-Where coro is async-defined function which takes one positional argument, its instance will be TelegramClient
+``items`` in case of TelegramClient means unpacked container of async-defined functions taking on position arguments
 
 Usage example:
 
@@ -266,7 +265,7 @@ As an example, bot that doesn't requires `TelegramClient` to answer messages dir
         await respond("ok")
         await reply("Ok")
 
-# This parts are in development, you can contribute!
+
 
 -----------------
 What's more ❓

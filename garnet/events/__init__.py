@@ -1,33 +1,94 @@
-# MIT / Copyright (c) 2016-2019 LonamiWebs
-
-# todo:
-#   remove .register and .unregister
-#   rewrite events EventCommon/EventBuilder(optimize .build)
-# note:
-#   All events are currently ported from telethon with event.Event reimplemented to have context magic
+from typing import Type
 
 from warnings import warn
 
-from .raw import Raw
-from .album import Album
-from .chataction import ChatAction
-from .messagedeleted import MessageDeleted
-from .messageedited import MessageEdited
-from .messageread import MessageRead
-from .newmessage import NewMessage
-from .userupdate import UserUpdate
-from .callbackquery import CallbackQuery
-from .inlinequery import InlineQuery
+from telethon.events.raw import Raw
+from telethon.events.album import Album
+from telethon.events.chataction import ChatAction
+from telethon.events.messagedeleted import MessageDeleted
+from telethon.events.messageedited import MessageEdited
+from telethon.events.messageread import MessageRead
+from telethon.events.newmessage import NewMessage
+from telethon.events.userupdate import UserUpdate
+from telethon.events.callbackquery import CallbackQuery
+from telethon.events.inlinequery import InlineQuery
+
+from ..helpers import ctx as _ctx
 
 
-_HANDLERS_ATTRIBUTE = '__tl.handlers'
+def patch_event_ctx():
+    def ctx_proxy(cls: Type) -> Type:
+        def __init__(self, *args, **kwargs):
+            cls.__init__(self, *args, **kwargs)
+            self.set_current(self)
+
+        return type(
+            cls.__name__, (cls, _ctx.ContextInstanceMixin), {"__init__": __init__}
+        )
+
+    Album.Event = ctx_proxy(Album.Event)
+    ChatAction.Event = ctx_proxy(ChatAction.Event)
+    MessageDeleted.Event = ctx_proxy(MessageDeleted.Event)
+    MessageEdited.Event = ctx_proxy(MessageEdited.Event)
+    MessageRead.Event = ctx_proxy(MessageRead.Event)
+    NewMessage.Event = ctx_proxy(NewMessage.Event)
+    UserUpdate.Event = ctx_proxy(UserUpdate.Event)
+    CallbackQuery.Event = ctx_proxy(CallbackQuery.Event)
+    InlineQuery.Event = ctx_proxy(InlineQuery.Event)
 
 
-def _warn():
+patch_event_ctx()
+
+
+class EventBuilderDict:
+    """
+    Helper "dictionary" to return events from types and cache them.
+    """
+    from telethon.events.common import EventCommon  # noqa
+
+    def __init__(self, client, update, others):
+        self.client = client
+        self.update = update
+        self.others = others
+
+    def __getitem__(self, builder):
+        try:
+            return self.__dict__[builder]
+        except KeyError:
+            event = self.__dict__[builder] = builder.build(
+                self.update, self.others, self.client._self_input_peer.user_id
+            )
+
+            if isinstance(event, EventBuilderDict.EventCommon):
+                event.original_update = self.update
+                event._entities = self.update._entities
+                event._set_client(self.client)
+            elif event:
+                event._client = self.client
+
+            return event
+
+
+__all__ = (
+    "Raw",
+    "Album",
+    "ChatAction",
+    "MessageDeleted",
+    "MessageEdited",
+    "MessageRead",
+    "NewMessage",
+    "UserUpdate",
+    "CallbackQuery",
+    "InlineQuery",
+    "EventBuilderDict",
+)
+
+
+def _deprecated():
     warn(
-        message="event.Register/Unregister will be fully removed in "
-                "Garnet 1.0, use garnet::router::Router",
-        category=Warning,
+        message="event.Register/Unregister is deprecated in "
+        "Garnet, use garnet::router::Router",
+        category=Exception,
         stacklevel=5,
     )
 
@@ -54,6 +115,7 @@ class StopPropagation(Exception):
         ...     # Will never be reached, because it is the second handler
         ...     pass
     """
+
     # For some reason Sphinx wants the silly >>> or
     # it will show warnings and look bad when generated.
     pass
@@ -61,50 +123,12 @@ class StopPropagation(Exception):
 
 def register(event=None):
     """
-    Decorator method to *register* event handlers. This is the client-less
-    `add_event_handler()
-    <telethon.client.updates.UpdateMethods.add_event_handler>` variant.
-
-    Note that this method only registers callbacks as handlers,
-    and does not attach them to any client. This is useful for
-    external modules that don't have access to the client, but
-    still want to define themselves as a handler. Example:
-
-    >>> from telethon import events
-    >>> @events.register(events.NewMessage)
-    ... async def handler(event):
-    ...     ...
-    ...
-    >>> # (somewhere else)
-    ...
-    >>> from telethon import TelegramClient
-    >>> client = TelegramClient(...)
-    >>> client.add_event_handler(handler)
-
-    Remember that you can use this as a non-decorator
-    through ``register(event)(callback)``.
-
-    Args:
-        event (`_EventBuilder` | `type`):
-            The event builder class or instance to be used,
-            for instance ``events.NewMessage``.
+    DEPRECATED FUNCTION
     """
-    _warn()
-    if isinstance(event, type):
-        event = event()
-    elif not event:
-        event = Raw()
-
-    def decorator(callback):
-        handlers = getattr(callback, _HANDLERS_ATTRIBUTE, [])
-        handlers.append(event)
-        setattr(callback, _HANDLERS_ATTRIBUTE, handlers)
-        return callback
-
-    return decorator
+    _deprecated()
 
 
-def unregister(callback, event=None):
+def unregister(*_):
     """
     Inverse operation of `register` (though not a decorator). Client-less
     `remove_event_handler
@@ -120,44 +144,31 @@ def unregister(callback, event=None):
     If no event is given, all events for this callback are removed.
     Returns how many callbacks were removed.
     """
-    _warn()
-    found = 0
-    if event and not isinstance(event, type):
-        event = type(event)
-
-    handlers = getattr(callback, _HANDLERS_ATTRIBUTE, [])
-    handlers.append((event, callback))
-    i = len(handlers)
-    while i:
-        i -= 1
-        ev = handlers[i]
-        if not event or isinstance(ev, event):
-            del handlers[i]
-            found += 1
-
-    return found
+    _deprecated()
 
 
-def is_handler(callback):
+def is_handler(*_):
     """
+    DEPRECATED
     Returns `True` if the given callback is an
     event handler (i.e. you used `register` on it).
     """
-    _warn()
-    return hasattr(callback, _HANDLERS_ATTRIBUTE)
+    _deprecated()
 
 
-def list(callback):
+def list(*_):
     """
+    DEPRECATED
     Returns a list containing the registered event
     builders inside the specified callback handler.
     """
 
-    return getattr(callback, _HANDLERS_ATTRIBUTE, [])[:]
+    _deprecated()
 
 
-def _get_handlers(callback):
+def _get_handlers(*_):
     """
+    DEPRECATED
     Like ``list`` but returns `None` if the callback was never registered.
     """
-    return getattr(callback, _HANDLERS_ATTRIBUTE, None)
+    _deprecated()

@@ -1,2 +1,3 @@
 from .base import Filter
-from . import state, text
+from .state import CurrentState
+from . import text
