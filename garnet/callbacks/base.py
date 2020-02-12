@@ -45,5 +45,3 @@ class Callback:
 
             if CURRENT_CLIENT_KEY in args_cp:
                 self.requires_client = True
-
-        del args_cp

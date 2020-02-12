@@ -1,7 +1,7 @@
 # Source: https://github.com/aiogram/aiogram
 
 """
-This module has redis storage for finite-state machine based on `aioredis <https://github.com/aio-libs/aioredis>`_ driver
+This module has redis storage for user states based on`aioredis <https://github.com/aio-libs/aioredis>`_ driver
 """
 
 import asyncio

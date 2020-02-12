@@ -2,50 +2,31 @@ import pathlib
 
 from setuptools import find_packages, setup
 
-try:
-    from pip.req import parse_requirements
-except ImportError:  # pip >= 10.0.0
-    from pip._internal.req import parse_requirements
-
-
 WORK_DIR = pathlib.Path(__file__).parent
 
 
-with open("readme.rst", "r", encoding="utf-8") as f:
+with (WORK_DIR / "readme.rst").open(mode="r", encoding="utf-8") as f:
     description = f.read()
-
-
-def get_requirements():
-    """
-    Read requirements from 'requirements txt'
-    :return: requirements
-    :rtype: list
-    """
-    file = WORK_DIR / "requirements.txt"
-
-    install_reqs = parse_requirements(str(file), session="hack")
-    return [str(ir.req) for ir in install_reqs]
 
 
 setup(
     name="garnet",
-    version="0.1.6",
+    version="0.2.1",  # major.minor.chore(fix,etc.)
     packages=find_packages(exclude=("examples.*", "static.*")),
-    url="https://github.com/uwinx/pomegranate",
+    url="https://github.com/uwinx/garnet",
     license="MIT",
     author="Martin Winks",
     author_email="mpa@snejugal.ru",
     description="Garnet is a telethon add-on",
     long_description=description,
-    classifiers=[
+    classifiers=(
         "Environment :: Web Environment",
         "Framework :: AsyncIO",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-    ],
-    install_requires=get_requirements(),
-    package_data={"": ["requirements.txt"]},
+    ),
+    install_requires=("Telethon>=1.10.8,<2.0",),
     include_package_data=False,
-    keywords="asyncio add-on telethon fsm filters router contextvars",
+    keywords="asyncio add-on telethon fsm filters router contextvars telegram",
 )

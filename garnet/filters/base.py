@@ -8,6 +8,7 @@ class Filter:
     """
     Base Filter object, callback container
     """
+
     def __init__(
         self, function: Callable, requires_context: bool = False, state_op: bool = False
     ):
@@ -42,10 +43,10 @@ class Filter:
             function, requires_context, state_op
         )
 
-    def __eq__(self, value: Any):
+    def __eq__(self, value: Any) -> Filter:
         return _singfilter(self, lambda filter1: operator.eq(filter1, value))
 
-    def __ne__(self, value: Any):
+    def __ne__(self, value: Any) -> Filter:
         return _singfilter(self, lambda filter1: operator.ne(filter1, value))
 
     def __xor__(self, filter2: Filter) -> Filter:
@@ -57,11 +58,11 @@ class Filter:
     def __or__(self, filter2: Filter) -> Filter:
         return _compose_filter(self, filter2, operator.or_)
 
-    def __invert__(self):
+    def __invert__(self) -> Filter:
         return _singfilter(self, operator.not_)
 
 
-def _compose_filter(filter1: Filter, filter2: Filter, operator_):
+def _compose_filter(filter1: Filter, filter2: Filter, operator_) -> Filter:
     if (not isinstance(filter1, Filter)) | (not isinstance(filter2, Filter)):
         raise ValueError(
             f"Cannot compare non-Filter object with Filter, "
@@ -81,7 +82,7 @@ def _compose_filter(filter1: Filter, filter2: Filter, operator_):
                 await filter2.function(event, context),
             )
 
-        return result(func, requires_context=True)
+        return result(func, True)
 
     elif (filter1.awaitable ^ filter2.awaitable) & (
         filter1.requires_context ^ filter2.requires_context
@@ -97,7 +98,7 @@ def _compose_filter(filter1: Filter, filter2: Filter, operator_):
                 await async_func.function(event, context), sync_func.function(event)
             )
 
-        return result(func, requires_context=True)
+        return result(func, True)
 
     elif filter1.awaitable ^ filter2.awaitable:
         async_func = filter1 if filter1.awaitable else filter2
@@ -116,7 +117,7 @@ def _compose_filter(filter1: Filter, filter2: Filter, operator_):
     return result(func)
 
 
-def _singfilter(filter1: Filter, operator_):
+def _singfilter(filter1: Filter, operator_) -> Filter:
     result = Filter.from_def_state(filter1.state_op)
 
     if filter1.awaitable | filter1.requires_context:
@@ -138,7 +139,4 @@ def _singfilter(filter1: Filter, operator_):
     return result(func)
 
 
-__all__ = (
-    "Filter",
-
-)
+__all__ = ("Filter",)

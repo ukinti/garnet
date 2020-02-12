@@ -6,7 +6,7 @@ from garnet import (
     FSMContext,
     MessageText,
     Filter,
-    state,
+    CurrentState,
     events,
 )
 
@@ -14,11 +14,12 @@ from garnet.functions import messages
 
 bot = TelegramClient.from_env()
 ATTEMPTS = 3
+OWNER = "@uwinx"
 PASSWORD1, PASSWORD2 = "OWO", "UWU"
 
 
-async def reached_incorrect_pass_limit(event, context: FSMContext) -> bool:
-    return (await context.get_data() or {}).get("attempts", 0) >= 3
+async def reached_incorrect_pass_limit(*_, context: FSMContext) -> bool:
+    return (await context.get_data() or {}).get("attempts", 0) >= ATTEMPTS
 
 
 @bot.on(Filter(reached_incorrect_pass_limit, requires_context=True))
@@ -33,7 +34,7 @@ async def not_start_handler(_, context: FSMContext):
     attempts += 1
     await context.update_data(attempts=attempts)
     await messages.reply(
-        f"Password incorrect. Available: {3 - attempts}"
+        f"Password incorrect. Available: {ATTEMPTS - attempts}"
     )  # you can use contextvars magic here
 
 
@@ -43,7 +44,7 @@ async def correct_password(_, context: FSMContext):
     await context.set_state("onStandBy")
 
 
-@bot.on(state.exact("onStandBy") & MessageText.commands("cats", prefixes="./"))
+@bot.on(CurrentState.exact("onStandBy") & MessageText.commands("cats", prefixes="./"))
 async def menu(_):
     await messages.reply("Sorry, I'm not ukrainian cat-pic sender...")
 
