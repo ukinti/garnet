@@ -11,9 +11,9 @@ with (WORK_DIR / "readme.rst").open(mode="r", encoding="utf-8") as f:
 
 setup(
     name="garnet",
-    version="0.2.0",  # major.minor.chore(fix,etc.)
+    version="0.2.1",  # major.minor.chore(fix,etc.)
     packages=find_packages(exclude=("examples.*", "static.*")),
-    url="https://github.com/uwinx/pomegranate",
+    url="https://github.com/uwinx/garnet",
     license="MIT",
     author="Martin Winks",
     author_email="mpa@snejugal.ru",

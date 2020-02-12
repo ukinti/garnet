@@ -14,7 +14,7 @@ Garnet — bot-friendly telethon
 .. _aiohttp: https://pypi.org/project/aiohttp/
 .. _Alex: https://github.com/JrooTJunior
 
-.. image:: https://raw.githubusercontent.com/uwinx/pomegranate/master/static/pomegranate.jpg
+.. image:: https://raw.githubusercontent.com/uwinx/garnet/master/static/pomegranate.jpg
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/python/black
@@ -23,7 +23,7 @@ Garnet — bot-friendly telethon
 
 Install::
 
-    pip install "https://github.com/uwinx/pomegranate/archive/master.zip"
+    pip install "https://github.com/uwinx/garnet/archive/master.zip"
 
 
 **Dependencies:**
@@ -99,7 +99,7 @@ MessageText or text(``from garnet import text``) includes following comparisons 
 Once great minds decided that state checking will be in filters without adding ``state`` as handler decorator parameter and further storing state in ``callback.(arg)``
 ``CurrentState`` class methods return ``Filter``. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMProxy is passed if true
 
-See `FSM example <https://github.com/uwinx/pomegranate/blob/master/examples/fsm.py>`_ to understand how CurrentState works
+See `FSM example <https://github.com/uwinx/garnet/blob/master/examples/fsm.py>`_ to understand how CurrentState works
 
 Includes following methods all returning <bool>
  - ``.exact(x)`` or ``CurrentState == x`` -> ``await context.get_state() == x``
