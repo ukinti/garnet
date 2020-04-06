@@ -49,7 +49,7 @@ class BaseRouter(AbstractRouter, ABC):
         """
         self.event = event
         self.frozen = frozen
-        self.handlers = PseudoFrozenList[tuple]
+        self.handlers: PseudoFrozenList[tuple] = PseudoFrozenList[tuple]
         self.filters = filters
 
     # noinspection PyTypeChecker

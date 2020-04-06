@@ -23,11 +23,12 @@ Garnet — bot-friendly telethon
 
 Install::
 
-    pip install "https://github.com/uwinx/garnet/archive/master.zip"
+    pip install telegram-garnet
 
 
 **Dependencies:**
     - ``telethon`` - main dependency telethon_
+**Extras:**
     - ``aioredis`` - redis driver if you use RedisStorage* aioredis_
     - ``orjson`` || ``ujson`` - RedisStorage/JSONStorage de-&& serialization orjson_ ujson_
     - ``cryptg``, ``hachoir``, ``aiohttp`` - boost telethon itself cryptg_ hachoir_ aiohttp_
@@ -254,6 +255,7 @@ One of the sweetest parts of garnet. Using `contextvars` we reach incredibly bea
 As an example, bot that doesn't requires `TelegramClient` to answer messages directly.
 
 .. code-block:: python
+
     from garnet.functions.messages import reply, message, respond
 
     @bot.message_handler()
@@ -287,17 +289,6 @@ Awesome bitwise operation supported filters(I highly recommend to use them)::
 
 
 Using `client = TelegramClient.start` assignment and start client on the fly, make annotation or typing.cast to have better hints.
-
-------------------------------------
-What should be implemented next ❓
-------------------------------------
-
-|optionMiddleware| |optionMS|
-
-.. |optionMiddleware| image:: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%93%A5%20Middlewares
-   :target: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%93%A5%20Middlewares/vote
-.. |optionMS| image:: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient
-   :target: https://api.gh-polls.com/poll/01DPHJR84XHA58R1E00X3MP2A0/%F0%9F%97%83%20Single-session%20based%20multiple%20clients%20TelegramClient/vote
 
 ---------------
 About

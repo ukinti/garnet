@@ -3,7 +3,7 @@ from telethon import custom
 from garnet import TelegramClient, FSMContext, MessageText, CurrentState
 
 
-# // genders in parallel universe buttons
+# // genders in parallel universe buttons. just imagine 🤔
 buttons = (
     (custom.Button.text("Abuser", resize=True),),
     (custom.Button.text("Dishwasher"),),
