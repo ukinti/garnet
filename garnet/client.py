@@ -229,7 +229,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             await self.get_me(input_peer=True)
 
         built = EventBuilderDict(self, update, others)
-        filters_cache = {}
         for builder, callback in self._event_builders:
             event = built[type(builder)]
             if not event:
@@ -267,9 +266,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
             if filters:
                 for filter_ in filters:
-                    if filter_ in filters_cache:
-                        succeed = filters_cache[filter_]
-
                     if context is not None and filter_.requires_context:
                         if (await filter_.function(event, context)) is False:
                             succeed = False
@@ -283,8 +279,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
                         ) is False:
                             succeed = False
                             break
-
-                    filters_cache[filter_] = succeed
 
             if succeed is False:
                 continue
