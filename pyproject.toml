@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telegram-garnet"
-version = "0.2.2"
+version = "0.2.3"
 description = "Garnet - cool add-on for Telethon"
 authors = ["Martin Winks <cat@snejugal.ru>"]
 readme = 'readme.rst'
@@ -28,14 +28,6 @@ cryptg = {version = "^0.2.post0", optional = true}
 hachoir = "^3.1.1"
 orjson = "^2.6.3"
 ujson = "^2.0.3"
-
-[tool.poetry.extras]
-cryptg = ["cryptg"]
-orjson = ["orjson"]
-aiohttp = ["aiohttp"]
-redis = ["aioredis"]
-ujson = ["ujson"]
-hachoir = ["hachoir"]
 
 [build-system]
 requires = ["poetry>=0.12"]

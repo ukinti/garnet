@@ -1,24 +1,11 @@
-from typing import List, TypeVar, Generic
+from typing import List, TypeVar, Generic, Optional
 
 T = TypeVar("T")
 
 
 class PseudoFrozenList(Generic[T]):
     # we don't need  python list's all methods, so don't inherit from it
-    @staticmethod  # noqa
-    def __class_getitem__(*types_: T):
-        """
-        Another initialization method. I just liked it this way :>
-        >>> x = PseudoFrozenList[int]
-        >>> x.append(1, 2, 3, "4,5,6,7".split(","))
-        :return: new PseudoFrozenList
-        """
-        return PseudoFrozenList(*types_)
-
-    def __init__(self, t: T):
-        if not isinstance(t, type):
-            raise ValueError(f"Expected Type, got {t!r}")
-
+    def __init__(self):
         self.__items: List[T] = list()
         self.__frozen = False
 

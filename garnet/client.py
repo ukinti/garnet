@@ -60,11 +60,17 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         self.storage = storage
         self.__bot_token = None
 
+        _action_containerT = PseudoFrozenList[Callable]
+        self.on_start: _action_containerT
+        self.on_finish: _action_containerT
+        self.on_background: _action_containerT
+
         self.on_start, self.on_finish, self.on_background = (
-            PseudoFrozenList[Callable],
-            PseudoFrozenList[Callable],
-            PseudoFrozenList[Callable],
+            PseudoFrozenList(),
+            PseudoFrozenList(),
+            PseudoFrozenList(),
         )
+
         self.set_current(self)
 
     @classmethod
@@ -341,8 +347,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         try:
             return self.loop.run_until_complete(self._run_until_disconnected())
         except (KeyboardInterrupt, SystemError, SystemExit):
-            pass
-        finally:
             self.run_tasks(finishing=True)
             self.disconnect()
             self.loop.stop()

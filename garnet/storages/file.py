@@ -47,8 +47,9 @@ class JSONStorage(MemoryStorage):
             return json.loads(f.read())
 
     def _save(self, path: pathlib.Path):
-        with path.open("w", encoding="utf-8") as f:
-            return f.write(json.dumps(self.data).decode())
+        with path.open("wb", encoding="utf-8") as f:
+            serialized = json.dumps(self.data)  # orjson returns bytes for dumps
+            return f.write(serialized if isinstance(serialized, bytes) else serialized.encode())
 
     async def save(self, close: bool = False):
         if self.data:
