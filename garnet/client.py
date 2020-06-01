@@ -189,7 +189,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
         if _has_state_checker is False and self.storage is not None:
             filters = list(filters)
-            filters.append(~(state == all))
+            filters.append(~(state.CurrentState == all))
             filters = tuple(filters)
 
         elif _has_state_checker and self.storage is None:
