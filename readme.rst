@@ -2,7 +2,7 @@
 ===================================
 
 Garnet — bot-friendly telethon
------------------------------------
+********************************
 
 .. invisible-content-till-nel
 .. _aioredis: https://github.com/aio-libs/aioredis
@@ -16,26 +16,25 @@ Garnet — bot-friendly telethon
 
 .. image:: https://raw.githubusercontent.com/uwinx/garnet/master/static/pomegranate.jpg
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/python/black
-    :alt: aioqiwi-code-style
 
-
-Install::
+************
+Installation
+************
 
     pip install telegram-garnet
 
 
-**Dependencies:**
-    - ``telethon`` - main dependency telethon_
-**Extras:**
-    - ``aioredis`` - redis driver if you use RedisStorage* aioredis_
-    - ``orjson`` || ``ujson`` - RedisStorage/JSONStorage de-&& serialization orjson_ ujson_
-    - ``cryptg``, ``hachoir``, ``aiohttp`` - boost telethon itself cryptg_ hachoir_ aiohttp_
+^^^^^^^
+Extras
+^^^^^^^
+- ``aioredis`` - redis driver required if you're using RedisStorage* aioredis_
+- ``orjson`` or ``ujson`` - RedisStorage/JSONStorage not required at all (ser/deser)ialization orjson_ ujson_
 
----------------------------------
+
+****************************
 🌚 🌝 FSM-Storage types
----------------------------------
+****************************
+
 
 - File - json storage, the main idea behind JSON storage is a custom reload of file and usage of memory session for writing, so the data in json storage not always actual
 
@@ -46,19 +45,25 @@ Install::
 
 Pomegranate implements updates dispatching and checks callback's filters wrapping all callbacks into ``garnet::Callback`` object
 
-----------------
+***********************
 😋 Filters
-----------------
+***********************
 
 ``Filter`` object is the essential part of Pomegranate, the do state checking and other stuff.
 
 Basically, it's ``func`` from ``MyEventBuilder(func=lambda self: <bool>)`` but a way more complicated and not stored in EventBuilder, it's stored in callback object
 
 
-Useful filters
+Filters support bitwise operations ::
 
-1) 📨 **Messages**
+    # & (conjunction), | (disjunction), ~ (inversion), ^ (exclusive disjunction)
+    # also: ==, != (idk why)
+    @bot.on(MessageText.exact(".") | MessageText.exact(".."))
 
+
+^^^^^^^^^^^^^^^^^^^^^^^
+📨 Messages
+^^^^^^^^^^^^^^^^^^^^^^^
 
 `Following examples will include pattern`
 
@@ -94,8 +99,19 @@ MessageText or text(``from garnet import text``) includes following comparisons 
  - ``.startswith(x)`` -> ``event.raw_text.startswith(x)``
 
 
+``Len`` attribute in ``MessageText`` which has cmp methods::
 
-2) 👀 **CurrentState class**  [``from garnet import CurrentState``]
+
+    @bot.on((MessageText.Len <= 14) | (MessageText.Len >= 88))
+
+
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+👀 CurrentState class
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``from garnet import CurrentState``
+
 
 Once great minds decided that state checking will be in filters without adding ``state`` as handler decorator parameter and further storing state in ``callback.(arg)``
 ``CurrentState`` class methods return ``Filter``. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMProxy is passed if true
@@ -107,8 +123,9 @@ Includes following methods all returning <bool>
  - ``CurrentState == [x, y, z]`` -> ``await context.get_state() in [x, y, z]``
  - ``CurrentState == all`` or ``CurrentState == any`` -> ``await context.get_state() is not None``
 
-
-3) 🦔 Custom **Filter**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+🦔 Custom Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want to write your own filter, do it.
 
@@ -129,9 +146,20 @@ If you want to write your own filter, do it.
 
 So the handler can take strict ``context`` argument and also ignore it
 
------------------------
-On start|finish
------------------------
+^^^^
+Also
+^^^^
+
+There're file extension filters in ``garnet.filters.file_ext::File``, import as ``from garnet.filters import File``
+
+Some of filters are ported from ``telethon.utils`` as ``File.is_gif``, ``Filter.is_audio``, ``Filter.is_image``, ``Filter.is_video``
+
+And bunch of file extensions such as ``File.png``, ``File.ogg`` which are filters.
+
+
+*****************************
+On start|finish|background
+*****************************
 
 ``garnet::TelegramClient`` contains three lists on_start on_background and on_finish, their instance is ``PseudoFrozenList`` which freezes at calling ``.run_until_disconnected``
 ``PseudoFrozenList`` has three main methods::
@@ -143,7 +171,8 @@ On start|finish
 
 ``items`` in case of TelegramClient means unpacked container of async-defined functions taking on position arguments
 
-Usage example:
+**Usage:**
+
 
 .. code-block:: python
 
@@ -171,9 +200,9 @@ Usage example:
     bot.run_until_connected()
 
 
--------------------------------------------------
+****************************************************
 📦 Router and Migrating to garnet using Router
--------------------------------------------------
+****************************************************
 
 Think of router as just a dummy container of handlers(callbacks)
 
@@ -203,9 +232,7 @@ Think of router as just a dummy container of handlers(callbacks)
 
 The advantage of routers is evidence of registering handlers when you have module-separated handlers. `events.register` was doing well, but blindly importing modules to register handlers and don't use them(modules) doesn't seem like a good idea.
 
-
-Example of registering router in bot application
-
+**Example of registering router in bot application**
 
 .. code-block:: python
 
@@ -235,7 +262,7 @@ Example of registering router in bot application
     tg.bind_routers(messages, cb_query)
     ...
 
-`TelethonRouter` and `Router` both have following remarkable methods:
+`TelethonRouter` and `Router` both have following methods:
 
 ::
 
@@ -245,9 +272,9 @@ Example of registering router in bot application
     .message_edited_handler(*filters)
     .album_handler(*filters)
 
---------------------
+*********************
 🍬 Context magic
---------------------
+*********************
 
 One of the sweetest parts of garnet. Using `contextvars` we reach incredibly beautiful code :D
 *this is not FSMContext don't confuse with context magic provided by contextvars*
@@ -268,37 +295,47 @@ As an example, bot that doesn't requires `TelegramClient` to answer messages dir
         await reply("Ok")
 
 
+``garnet.functions.messages`` contains ``current`` class with handy shortcuts:
 
------------------
+.. code-block:: python
+
+    from garnet.functions.messages import current
+
+    current.text  # raw text
+    current.fmt_text  # formatted text according to default parse mode
+    current.chat  # current chat
+    current.chat_id  # current chat identifier
+
+
+******************
 What's more ❓
------------------
+******************
 
-Class-based handlers are also can be implemented with garnet conveniently. Use your imagination and ``garnet::callbacks::base::Callback`` as a parent class
-
-Awesome bitwise operation supported filters(I highly recommend to use them)::
-
-    # & (conjunction), | (disjunction), ~ (inversion), ^ (exclusive disjunction)
-    # also: ==, != (idk why)
-    @bot.on(MessageText.exact(".") | MessageText.exact(".."))
+Garnet can patch ``TLRequest.__await__`` method. To do something like:
 
 
-``Len`` attribute in ``MessageText`` which has cmp methods::
+.. code-block:: python
+
+    from telethon.tl.functions.users import GetUsersRequest
+
+    for user in await GetUsersRequest(["martin_winks", "YOURUSERNAME"]):
+        print(user.username)
 
 
-    @bot.on((MessageText.Len <= 14) | (MessageText.Len >= 88))
+*******************
+Contacts/Community
+*******************
 
+You can find me on telegram by `@martin_winks <https://telegram.me/martin_winks>`_
 
-Using `client = TelegramClient.start` assignment and start client on the fly, make annotation or typing.cast to have better hints.
+Our small telegram `group <https://t.me/joinchat/B2cC_hknbKGm3_G8N9qifQ>`_
 
----------------
-About
----------------
-
-You can find me in tg by `@martin_winks <https://telegram.me/martin_winks>`_ and yeah I receive donates as well as all contributors do(support `lonamiwebs <http://paypal.me/lonamiwebs>`_ and `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_).
-
-
----------------------
+**********************
 🤗 Credits
----------------------
+**********************
 
 Finite-state machine was ported from cool BotAPI library 'aiogram', special thanks to Alex_
+
+support lonamiwebs: `lonamiwebs <http://paypal.me/lonamiwebs>`_
+
+support aiogram project: `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_

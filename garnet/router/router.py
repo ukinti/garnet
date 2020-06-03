@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, Callable, NoReturn, Sequence, TYPE_CHECKING
+from typing import Union, Callable, Optional, TYPE_CHECKING
 
 from ..events import CallbackQuery, ChatAction, NewMessage, MessageEdited
 from ..helpers.frozen_list import PseudoFrozenList
@@ -11,8 +11,7 @@ if TYPE_CHECKING:
 
 
 class AbstractRouter(ABC):
-    frozen: bool
-    handlers: Sequence
+    __slots__ = "event", "frozen", "handlers", "filters"
 
     @abstractmethod
     def __call__(self, *args, **kwargs):
@@ -41,7 +40,7 @@ class AbstractRouter(ABC):
 
 class BaseRouter(AbstractRouter, ABC):
     def __init__(
-        self, event: "common.EventBuilder", frozen: bool = False, *filters: Filter
+        self, event: Optional["common.EventBuilder"], frozen: bool = False, *filters: Filter
     ):
         """
         BaseRouter
@@ -68,12 +67,12 @@ class BaseRouter(AbstractRouter, ABC):
     def message_edited_handler(self, *filters: Union[Callable, Filter]):
         return self.register(*(*filters, *self.filters), event=MessageEdited)
 
-    def add_router(self, router: "BaseRouter") -> NoReturn:
+    def add_router(self, router: "BaseRouter") -> "BaseRouter":
         if type(self) != type(router):
-            raise ValueError(f"Can bind {router!r} into {self!r}")
+            raise ValueError(f"Can't bind {router!r} into {self!r}")
         for handler in router.handlers:
             self.handlers.append(handler)
-        return self, router
+        return self
 
 
 class TelethonRouter(BaseRouter):

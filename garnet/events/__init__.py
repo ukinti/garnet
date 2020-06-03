@@ -1,7 +1,5 @@
 from typing import Type
 
-from warnings import warn
-
 from telethon.events.raw import Raw
 from telethon.events.album import Album
 from telethon.events.chataction import ChatAction
@@ -85,15 +83,6 @@ __all__ = (
 )
 
 
-def _deprecated():
-    warn(
-        message="event.Register/Unregister is deprecated in "
-        "Garnet, use garnet::router::Router",
-        category=Exception,
-        stacklevel=5,
-    )
-
-
 class StopPropagation(Exception):
     """
     If this exception is raised in any of the handlers for a given event,
@@ -120,56 +109,3 @@ class StopPropagation(Exception):
     # For some reason Sphinx wants the silly >>> or
     # it will show warnings and look bad when generated.
     pass
-
-
-def register(event=None):
-    """
-    DEPRECATED FUNCTION
-    """
-    _deprecated()
-
-
-def unregister(*_):
-    """
-    Inverse operation of `register` (though not a decorator). Client-less
-    `remove_event_handler
-    <telethon.client.updates.UpdateMethods.remove_event_handler>`
-    variant. **Note that this won't remove handlers from the client**,
-    because it simply can't, so you would generally use this before
-    adding the handlers to the client.
-
-    This method is here for symmetry. You will rarely need to
-    unregister events, since you can simply just not add them
-    to any client.
-
-    If no event is given, all events for this callback are removed.
-    Returns how many callbacks were removed.
-    """
-    _deprecated()
-
-
-def is_handler(*_):
-    """
-    DEPRECATED
-    Returns `True` if the given callback is an
-    event handler (i.e. you used `register` on it).
-    """
-    _deprecated()
-
-
-def list(*_):
-    """
-    DEPRECATED
-    Returns a list containing the registered event
-    builders inside the specified callback handler.
-    """
-
-    _deprecated()
-
-
-def _get_handlers(*_):
-    """
-    DEPRECATED
-    Like ``list`` but returns `None` if the callback was never registered.
-    """
-    _deprecated()

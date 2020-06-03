@@ -1,4 +1,4 @@
-from typing import List, TypeVar, Generic, Optional
+from typing import List, TypeVar, Generic
 
 T = TypeVar("T")
 
@@ -34,5 +34,4 @@ class PseudoFrozenList(Generic[T]):
     def __call__(self):
         def wrp(item: T):
             self.append(item)
-
         return wrp

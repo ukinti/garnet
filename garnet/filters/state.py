@@ -1,4 +1,4 @@
-from typing import List, Callable, Dict, Any, Tuple, Union, Sequence
+from typing import Callable, Dict, Any, Tuple, Union, Container
 
 from telethon.events import common
 
@@ -27,13 +27,13 @@ class _MetaCurrentState(type):
         return CurrentState @ key_maker
 
     @classmethod
-    def __eq__(mcs, _s: Union[str, List[str]]) -> Filter:
+    def __eq__(mcs, _s: Union[str, Container[str]]) -> Filter:
         if id(_s) in ANY_STATE:
 
             async def _f(_, context):
                 return (await context.get_state()) is not None
 
-        elif isinstance(_s, Sequence):
+        elif not isinstance(_s, str) and isinstance(_s, Container):
 
             async def _f(_, context):
                 return (await context.get_state()) in _s
@@ -46,13 +46,13 @@ class _MetaCurrentState(type):
         return Filter(_f, requires_context=True, state_op=True)
 
     @classmethod
-    def exact(mcs, state: Union[str, List[str]]) -> Filter:
+    def exact(mcs, state: Union[str, Container[str]]) -> Filter:
         # noinspection PyTypeChecker
         return CurrentState == state  # type: ignore
 
     @classmethod
     def with_key(mcs, state: str, key_maker: KeyMakerType):
-        return CurrentState @ (state, key_maker)
+        return mcs.__matmul__((state, key_maker))
 
 
 class CurrentState(metaclass=_MetaCurrentState):
@@ -63,7 +63,7 @@ class CurrentState(metaclass=_MetaCurrentState):
         key_maker is a callable with signature: (event) -> Dict[str, Any]
         For instance:
             >>> def my_key_maker(event) -> Dict[str, Any]:
-            ...     return {"chat": event.chat.id, event.user.id}
+            ...     return {"chat": event.chat.id, "user": event.user.id}
             ...
             >>> CurrentState @ ("equlas_to_the_state", my_key_maker)
             ... <garnet.filters.base.Filter object at 0x7f8bebe996>
