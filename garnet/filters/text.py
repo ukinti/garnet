@@ -33,7 +33,7 @@ def commands(
     return Filter(
         lambda update: isinstance(update.text, str)
         and any(update.text.startswith(prefix) for prefix in prefixes)
-        and update.text.split()[0][1:] in cmd
+        and update.text.split()[0][1:].split('@')[0] in cmd
     )
 
 
