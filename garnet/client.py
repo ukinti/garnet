@@ -265,7 +265,6 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
                     if context is not None and filter_.requires_context:
                         if (await filter_.function(event, context)) is False:
                             succeed = False
-                            print("filters failed")
                             break
 
                     else:
