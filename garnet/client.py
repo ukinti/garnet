@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import (
     Union,
     Callable,
+    Dict,
     Sequence,
     List,
     Optional,
@@ -15,12 +16,10 @@ import getpass
 
 from telethon.client.telegramclient import TelegramClient as _TelethonTelegramClient
 
-from garnet.events import StopPropagation, NewMessage, Raw
-
-from .events import EventBuilderDict
+from .events import EventBuilderDict, StopPropagation, NewMessage, Raw
 from .filters import state
 from .filters.base import Filter
-from .storages import base, file, memory
+from .storages import base, memory
 from .callbacks.base import (
     Callback,
     CURRENT_CLIENT_KEY,
@@ -35,7 +34,10 @@ if TYPE_CHECKING:
 
 
 class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
-    storage: base.BaseStorage = None
+    # todo how hard would be using forwardable library to use composition instead of inheritance.
+
+    storage: base.BaseStorage
+    conf: Dict[str, Any]
 
     class Env:
         default_session_dsn_key = "SESSION"
@@ -57,19 +59,13 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
         super().__init__(session, api_id, api_hash, *args, **kwargs)
 
+        self.conf: Dict[str, Any] = {}
         self.storage = storage
         self.__bot_token = None
 
-        _action_containerT = PseudoFrozenList[Callable]
-        self.on_start: _action_containerT
-        self.on_finish: _action_containerT
-        self.on_background: _action_containerT
-
-        self.on_start, self.on_finish, self.on_background = (
-            PseudoFrozenList(),
-            PseudoFrozenList(),
-            PseudoFrozenList(),
-        )
+        self.on_start: PseudoFrozenList[Callable] = PseudoFrozenList()
+        self.on_finish: PseudoFrozenList[Callable] = PseudoFrozenList()
+        self.on_background: PseudoFrozenList[Callable] = PseudoFrozenList()
 
         self.set_current(self)
 
@@ -100,7 +96,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         obj.__bot_token = os.getenv(cls.Env.default_bot_token_key, bot_token)
         obj.set_current(obj)
 
-        if isinstance(storage, (file.JSONStorage,)):
+        if isinstance(storage, base.FileStorageProto):
 
             async def close_storage(*_):
                 await storage.close()
@@ -134,12 +130,12 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         )
 
     @classmethod
-    def make_fsm_key(cls, update, *, _check=True) -> dict:
+    def make_fsm_key(cls, event) -> dict:
         try:
-            return {"chat": update.chat_id, "user": update.from_id}
+            return {"chat": event.chat_id, "user": event.from_id}
         except AttributeError:
             raise Warning(
-                f"Standard make_fsm_key method was not designed for {update!r}"
+                f"Standard make_fsm_key method was not designed for {event!r}"
             )
 
     def current_state(self, *, user, chat):
@@ -171,7 +167,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
     def add_event_handler(
         self,
         callback: Union[Callable, Callback],
-        event=None,
+        event: Any = None,
         *filters: Union[Callable, Filter],
     ):
         if filters is not None and not isinstance(filters, Sequence):
@@ -293,7 +289,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
                     coro = callback.__call__(event, **kwargs)
                 else:
-                    coro = callback.__call__(**kwargs)
+                    coro = callback.__call__()
 
                 if not callback.continue_prop:
                     return await coro

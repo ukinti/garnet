@@ -5,41 +5,45 @@ from telethon import hints, types, custom
 from garnet.events import NewMessage
 
 
+VT_co = typing.TypeVar("VT_co")
+
+
 def message() -> custom.Message:
     # noinspection PyTypeChecker
     return NewMessage.Event.current()  # type: ignore
 
 
+class _CurrentClsDescriptor(typing.Generic[VT_co]):
+    __slots__ = ("_fget",)
+
+    def __init__(self, fget: typing.Callable[[], VT_co]):
+        self._fget = fget
+
+    def __get__(self, *_) -> VT_co:
+        return self._fget()  # type: VT_co
+
+
 # noinspection PyPep8Naming
-class current(object):  # type: ignore
-    @property
-    def chat_id(self) -> typing.Optional[int]:
-        """
-        get current chat's ID
-        """
-        return message().chat_id
+class current:
+    chat_id: _CurrentClsDescriptor[typing.Optional[int]] = _CurrentClsDescriptor(
+        lambda: message().chat_id
+    )
+    """get current chat id"""
 
-    @property
-    def chat(self) -> typing.Union[types.User, types.Chat, types.Channel]:
-        """
-        get current chat
-        """
-        return message().chat
+    chat: _CurrentClsDescriptor[
+        typing.Union[types.User, types.Chat, types.Channel]
+    ] = _CurrentClsDescriptor(lambda: message().chat)
+    "get current chat"
 
-    @property
-    def fmt_text(self) -> typing.Optional[str]:
-        """
-        Get formatted text with respect to current parse_mode
-        e.g. <code>...</code>
-        """
-        return message().text
+    fmt_text: _CurrentClsDescriptor[typing.Optional[str]] = _CurrentClsDescriptor(
+        lambda: message().text
+    )
+    """get formatted text with respect to current parse_mode e.g. <code>...</code>"""
 
-    @property
-    def text(self) -> typing.Optional[str]:
-        """
-        Get RAW text from update, text without formatting
-        """
-        return message().raw_text
+    text: _CurrentClsDescriptor[typing.Optional[str]] = _CurrentClsDescriptor(
+        lambda: message().raw_text
+    )
+    """get the raw text from message"""
 
 
 async def respond(

@@ -49,13 +49,13 @@ async def menu(_):
     await messages.reply("Sorry, I'm not ukrainian cat-pic sender...")
 
 
-@bot.on_start
+@bot.on_start()
 async def on_start(client: TelegramClient):
     await client.start()
     await client.send_message("smn", "Bot is starting")
 
 
-@bot.on_finish
+@bot.on_finish()
 async def on_finish(client: TelegramClient):
     await client.send_message("smn", "GoodBye!")
 

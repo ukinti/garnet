@@ -23,7 +23,7 @@
 #
 
 from .client import TelegramClient
-from .storages.base import BaseStorage, FSMContext, FSMContextProxy
+from .storages.base import BaseStorage, FSMContext
 from .filters import Filter, text, CurrentState
 from .jsonlib import json
 from .callbacks.base import Callback
@@ -38,7 +38,6 @@ __all__ = (
     "TelegramClient",
     "events",
     "FSMContext",
-    "FSMContextProxy",
     "CurrentState",
     "text",
     "MessageText",  # bc&c

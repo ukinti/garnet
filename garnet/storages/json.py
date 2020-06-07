@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from ..jsonlib import json
 from .memory import MemoryStorage
+from .base import FileStorageProto
 
 executor = ThreadPoolExecutor()
 loop = asyncio.get_event_loop()
@@ -17,11 +18,12 @@ def _create_json_file(path: pathlib.Path):
     """
     Since `orJSON` does not provide .dump write by hand.
     """
-    with path.open("w", encoding="utf-8") as f:
-        f.write("{}")
+    if not path.exists():
+        with path.open("w", encoding="utf-8") as f:
+            f.write("{}")
 
 
-class JSONStorage(MemoryStorage):
+class JSONStorage(MemoryStorage, FileStorageProto):
     """
     JSON File storage based on MemoryStorage
     """
@@ -32,17 +34,12 @@ class JSONStorage(MemoryStorage):
         Could be more reliable.
         :param path: file path
         """
-        self.path = path = pathlib.Path(path)
-        try:
-            data = self.__read(path)
-        except FileNotFoundError:
-            _create_json_file(path)
-            data = self.__read(path)
-
-        super().__init__(data)
+        super().__init__()
+        self.path = pathlib.Path(path)
 
     # noinspection PyMethodMayBeStatic
     def __read(self, path: pathlib.Path):
+        _create_json_file(path)
         with path.open("r", encoding="utf-8") as f:
             return json.loads(f.read())
 
@@ -51,7 +48,11 @@ class JSONStorage(MemoryStorage):
             serialized = json.dumps(self.data)  # orjson returns bytes for dumps
             return f.write(serialized if isinstance(serialized, bytes) else serialized.encode())
 
-    async def save(self, close: bool = False):
+    async def read(self) -> None:
+        data = await loop.run_in_executor(executor, self.__read, self.path)
+        self.data = data
+
+    async def save(self, close: bool = False) -> None:
         if self.data:
             await loop.run_in_executor(executor, self.save, self.path)
         if close:

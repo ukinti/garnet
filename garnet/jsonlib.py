@@ -4,7 +4,7 @@ import importlib
 
 json = _std_json
 
-for __json_lib in ("orjson", "ujson", "rapidjson"):
+for __json_lib in ("orjson", "ujson"):
     try:
         json = importlib.import_module(__json_lib)
         dumps = json.dumps
