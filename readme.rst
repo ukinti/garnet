@@ -1,5 +1,5 @@
-🍷 Garnet
-===================================
+Garnet
+===========
 
 Garnet — bot-friendly telethon
 ********************************
@@ -167,7 +167,7 @@ On start|finish|background
     .append(*items)
     .remove(*items)
     .freeze()
-    .__call__(func)   # for shiny decorator
+    .__call__() => (func) => (wrapped_func)   # for shiny decorator
 
 ``items`` in case of TelegramClient means unpacked container of async-defined functions taking on position arguments
 
@@ -192,7 +192,7 @@ On start|finish|background
     bot.on_finish.append(db.close_pool)
     ...
 
-    @bot.on_background
+    @bot.on_background()
     async def xyz(cl: TelegramClient):
         while True:
            ...
@@ -262,7 +262,7 @@ The advantage of routers is evidence of registering handlers when you have modul
     tg.bind_routers(messages, cb_query)
     ...
 
-`TelethonRouter` and `Router` both have following methods:
+``TelethonRouter`` and ``Router`` both have following methods:
 
 ::
 
@@ -311,16 +311,24 @@ As an example, bot that doesn't requires `TelegramClient` to answer messages dir
 What's more ❓
 ******************
 
-Garnet can patch ``TLRequest.__await__`` method. To do something like:
+1. ``garner.client::TelegramClient.conf`` is an attribute for your stuff you should share "globally". Be careful using it.
 
+
+
+2. Garnet can patch ``TLRequest.__await__`` method. To do something like:
 
 .. code-block:: python
 
+    from garnet.patch_tl_methods import install
     from telethon.tl.functions.users import GetUsersRequest
+
+    install()
 
     for user in await GetUsersRequest(["martin_winks", "YOURUSERNAME"]):
         print(user.username)
 
+
+Just to have fun with debugging something with raw API.
 
 *******************
 Contacts/Community
@@ -336,6 +344,6 @@ Our small telegram `group <https://t.me/joinchat/B2cC_hknbKGm3_G8N9qifQ>`_
 
 Finite-state machine was ported from cool BotAPI library 'aiogram', special thanks to Alex_
 
-support lonamiwebs: `lonamiwebs <http://paypal.me/lonamiwebs>`_
+Support lonamiwebs: `lonamiwebs <http://paypal.me/lonamiwebs>`_
 
-support aiogram project: `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_
+Support aiogram project: `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_

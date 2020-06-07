@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import (
     Union,
     Callable,
+    Dict,
     Sequence,
     List,
     Optional,
@@ -18,7 +19,7 @@ from telethon.client.telegramclient import TelegramClient as _TelethonTelegramCl
 from .events import EventBuilderDict, StopPropagation, NewMessage, Raw
 from .filters import state
 from .filters.base import Filter
-from .storages import base, file, memory
+from .storages import base, memory
 from .callbacks.base import (
     Callback,
     CURRENT_CLIENT_KEY,
@@ -35,7 +36,8 @@ if TYPE_CHECKING:
 class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
     # todo how hard would be using forwardable library to use composition instead of inheritance.
 
-    storage: base.BaseStorage = None
+    storage: base.BaseStorage
+    conf: Dict[str, Any]
 
     class Env:
         default_session_dsn_key = "SESSION"
@@ -57,6 +59,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
 
         super().__init__(session, api_id, api_hash, *args, **kwargs)
 
+        self.conf: Dict[str, Any] = {}
         self.storage = storage
         self.__bot_token = None
 
@@ -93,7 +96,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         obj.__bot_token = os.getenv(cls.Env.default_bot_token_key, bot_token)
         obj.set_current(obj)
 
-        if isinstance(storage, (file.JSONStorage,)):
+        if isinstance(storage, base.FileStorageProto):
 
             async def close_storage(*_):
                 await storage.close()
@@ -164,7 +167,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
     def add_event_handler(
         self,
         callback: Union[Callable, Callback],
-        event=None,
+        event: Any = None,
         *filters: Union[Callable, Filter],
     ):
         if filters is not None and not isinstance(filters, Sequence):

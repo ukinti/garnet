@@ -83,7 +83,7 @@ async def pet_correct_handler(update: custom.Message, context: FSMContext):
 
 
 if __name__ == '__main__':
-    @bot.on_start
+    @bot.on_start()
     async def main(_):
         bot.bind_routers(router)
         await bot.start_as_bot()
