@@ -114,7 +114,7 @@ MessageText or text(``from garnet import text``) includes following comparisons 
 
 
 Once great minds decided that state checking will be in filters without adding ``state`` as handler decorator parameter and further storing state in ``callback.(arg)``
-``CurrentState`` class methods return ``Filter``. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMProxy is passed if true
+``CurrentState`` class methods return ``Filter``. There are two problems that Filter object really solves, ``Filter``'s function can be any kind of callable(async,sync), filters also have a flag ``requires_context``, FSMContext is passed if true
 
 See `FSM example <https://github.com/uwinx/garnet/blob/master/examples/fsm.py>`_ to understand how CurrentState works
 
@@ -132,14 +132,14 @@ If you want to write your own filter, do it.
 
 .. code:: python
 
-    from garnet import Filter, FSMProxy
+    from garnet import Filter, FSMContext
 
     async def myFunc(event): ...
-    async def myFuncContextRequires(event, context: FSMProxy): ...
+    async def myFuncContextRequires(event, context: FSMContext): ...
     def normal_func(event): ...
 
     @bot.on(Filter(normal_func), Filter(myFunc), Filter(myFuncContextRequires, requires_context=True))
-    async def handler(event, context: FSMProxy): ...
+    async def handler(event, context: FSMContext): ...
     # same as
     @bot.on(normal_func, myFunc, Filter(myFuncContextRequires, requires_context=True))
     async def handler(event): ...
