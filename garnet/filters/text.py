@@ -1,9 +1,8 @@
-import functools
 import operator
-import typing
 import re
+import typing
 
-from .base import Filter
+from garnet.events.filter import Filter
 
 
 def _base_len_comparator(operator_, predicted_length):
@@ -38,7 +37,7 @@ def commands(
 
 
 def match(expression: str) -> Filter:
-    return Filter(lambda update: re.compile(expression).match(update.raw_text))
+    return Filter(lambda update: bool(re.compile(expression).match(update.raw_text)))
 
 
 def exact(text: str) -> Filter:

@@ -1,7 +1,6 @@
 # Source: https://github.com/aiogram/aiogram
-from abc import ABC
-
 import typing
+from abc import ABC
 from warnings import warn
 
 # Leak bucket

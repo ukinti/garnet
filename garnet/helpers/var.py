@@ -3,6 +3,7 @@ class Var:
     Set string object values of class attributes as their link names.
     Pulled from https://github.com/uwinx/tamtam.py [modified]
     """
+
     __slots__ = "value", "prefix", "suffix"
 
     def __init__(self, prefix: str = "", value=None, suffix: str = "") -> None:

@@ -1,26 +1,38 @@
 from __future__ import annotations
-import typing
 
-# noinspection PyPackageRequirements
 import contextvars
+from typing import Any, ClassVar, Generic, Optional, TypeVar, cast
 
-Type = typing.TypeVar("Type")
+ContextInstance = TypeVar("ContextInstance")
 
 
-class ContextInstanceMixin:
-    def __init_subclass__(cls, **kwargs):
-        cls.__ctx_var = contextvars.ContextVar("initialized_" + cls.__name__)
-        return cls
+class ContextInstanceMixin(Generic[ContextInstance]):
+    __context_instance: ClassVar[contextvars.ContextVar[ContextInstance]]
 
-    @classmethod
-    def current(cls: typing.Type[Type], no_error=True) -> Type:
-        if no_error:
-            return cls.__ctx_var.get(None)
-        return cls.__ctx_var.get()
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__()
+        cls.__context_instance = contextvars.ContextVar(f"instance_{cls.__name__}")
 
     @classmethod
-    def set_current(cls: typing.Type[Type], value: Type) -> typing.NoReturn:
+    def get_current(cls, no_error: bool = False) -> Optional[ContextInstance]:
+        cls.__context_instance = cast(
+            contextvars.ContextVar[ContextInstance], cls.__context_instance
+        )
+
+        try:
+            current: Optional[ContextInstance] = cls.__context_instance.get()
+        except LookupError:
+            if no_error:
+                current = None
+            else:
+                raise
+
+        return current
+
+    @classmethod
+    def set_current(cls, value: ContextInstance) -> contextvars.Token[ContextInstance]:
         if not isinstance(value, cls):
-            raise ValueError(f"Got wrong instance, expected {cls!r} got {value!r}")
-
-        cls.__ctx_var.set(value)
+            raise TypeError(
+                f"Value should be instance of {cls.__name__!r} not {type(value).__name__!r}"
+            )
+        return cls.__context_instance.set(value)

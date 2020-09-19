@@ -1,7 +1,8 @@
 from telethon.utils import is_audio, is_gif, is_image, is_video
 
+from garnet._dispatcher.filter import Filter
+
 from ..helpers import var
-from .base import Filter
 
 
 class _FilterVar(var.Var):

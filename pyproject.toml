@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telegram-garnet"
-version = "0.3.0"
+version = "1.0.0"
 description = "Garnet - cool add-on for Telethon"
 authors = ["Martin Winks <cat@snejugal.ru>"]
 readme = 'readme.rst'
@@ -18,23 +18,17 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 Telethon = "^1.10.8"
 aioredis = {version = "^1.3.1", optional = true}
-orjson = {version = "^2.6.3", optional = true}
-ujson = {version = "^2.0.3", optional = true}
 
 [tool.poetry.dev-dependencies]
 aioredis = "^1.3.1"
-orjson = "^2.6.3"
-ujson = "^2.0.3"
 black = "^19.10b0"
 ipython = "^7.15.0"
 
 [tool.poetry.extras]
 redis = ["aioredis"]
-orjson = ["orjson"]
-ujson = ["ujson"]
 
 [build-system]
 requires = ["poetry>=0.12"]
