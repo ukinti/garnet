@@ -32,10 +32,14 @@ class Filter(Generic[ET]):
     __slots__ = "function", "is_awaitable", "event_builder"
 
     def __init__(
-        self, function: Callable[[ET], FR], event_builder: Optional[Type[EventBuilder]] = None,
+        self,
+        function: Callable[[ET], FR],
+        event_builder: Optional[Type[EventBuilder]] = None,
     ):
         self.function = function
-        self.is_awaitable = inspect.iscoroutinefunction(function) or inspect.isawaitable(function)
+        self.is_awaitable = inspect.iscoroutinefunction(
+            function
+        ) or inspect.isawaitable(function)
         self.event_builder = event_builder
 
     def __eq__(self, value: Any) -> Filter:
@@ -70,23 +74,31 @@ class Filter(Generic[ET]):
 
 
 def binary_op(
-    filter1: Filter[ET], filter2: Filter[ET], operator_: Callable[[bool, bool], bool]
+    filter1: Filter[ET],
+    filter2: Filter[ET],
+    operator_: Callable[[bool, bool], bool],
 ) -> Filter:
     if (not isinstance(filter1, Filter)) | (not isinstance(filter2, Filter)):
-        raise ValueError(f"Cannot merge non-Filter objects. {filter1!r} with {filter2!r}")
+        raise ValueError(
+            f"Cannot merge non-Filter objects. {filter1!r} with {filter2!r}"
+        )
 
     if (
         not (filter1.is_event_naive or filter2.is_event_naive)
         and filter1.event_builder != filter2.event_builder
     ):
-        raise ValueError("Cannot merge event-aware filters with different event_builders")
+        raise ValueError(
+            "Cannot merge event-aware filters with different event_builders"
+        )
 
     common_event_builder = filter1.event_builder
 
     if filter1.is_awaitable and filter2.is_awaitable:
 
         async def func(event):
-            return operator_(await filter1.function(event), await filter2.function(event),)
+            return operator_(
+                await filter1.function(event), await filter2.function(event),
+            )
 
         return Filter(function=func, event_builder=common_event_builder)
 
@@ -95,7 +107,9 @@ def binary_op(
         sync_func = filter2 if async_func == filter1 else filter1
 
         async def func(event):
-            return operator_(await async_func.function(event), sync_func.function(event))
+            return operator_(
+                await async_func.function(event), sync_func.function(event)
+            )
 
         return Filter(function=func, event_builder=common_event_builder)
 

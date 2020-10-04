@@ -46,7 +46,9 @@ class BaseStorage:
         :return:
         """
         if chat is None and user is None:
-            raise ValueError("`user` or `chat` parameter is required but no one is provided!")
+            raise ValueError(
+                "`user` or `chat` parameter is required but no one is provided!"
+            )
 
         if user is None and chat is not None:
             user = chat

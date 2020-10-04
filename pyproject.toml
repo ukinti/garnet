@@ -29,13 +29,13 @@ black = "^19.10b0"
 ipython = "^7.15.0"
 import-linter = "^1.1"
 flake8 = "^3.8.3"
-isort = {version = "^5.5.2", extras = ["pyproject"]}
+isort = "^5.5.2"
 
 [tool.poetry.extras]
 redis = ["aioredis"]
 
 [tool.black]
-line-length = 99
+line-length = 80
 target-version = ['py37', 'py38']
 exclude = '''
 (

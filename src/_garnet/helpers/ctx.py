@@ -11,7 +11,9 @@ class ContextInstanceMixin(Generic[ContextInstance]):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        cls.__context_instance = contextvars.ContextVar(f"instance_{cls.__name__}")
+        cls.__context_instance = contextvars.ContextVar(
+            f"instance_{cls.__name__}"
+        )
 
     @classmethod
     def get_current(cls, no_error: bool = False) -> Optional[ContextInstance]:
@@ -30,7 +32,9 @@ class ContextInstanceMixin(Generic[ContextInstance]):
         return current
 
     @classmethod
-    def set_current(cls, value: ContextInstance) -> contextvars.Token[ContextInstance]:
+    def set_current(
+        cls, value: ContextInstance
+    ) -> contextvars.Token[ContextInstance]:
         if not isinstance(value, cls):
             raise TypeError(
                 f"Value should be instance of {cls.__name__!r} not {type(value).__name__!r}"

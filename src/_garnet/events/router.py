@@ -2,7 +2,12 @@ from typing import TYPE_CHECKING, List, Optional, Tuple, Type, TypeVar, Union
 
 from _garnet.events.filter import Filter, ensure_filters
 from _garnet.events.handler import EventHandler, ensure_handler
-from _garnet.patched_events import CallbackQuery, ChatAction, MessageEdited, NewMessage
+from _garnet.patched_events import (
+    CallbackQuery,
+    ChatAction,
+    MessageEdited,
+    NewMessage,
+)
 
 if TYPE_CHECKING:
     from telethon.events import common
@@ -16,7 +21,9 @@ SomeEventT = TypeVar("SomeEventT")
 class Router:
     __slots__ = "event", "handlers", "upper_filters"
 
-    def __init__(self, default_event: "Optional[ET]", *upper_filters: Filter[None]):
+    def __init__(
+        self, default_event: "Optional[ET]", *upper_filters: Filter[None]
+    ):
         """
         BaseRouter
         :param frozen: While registering router it can be frozen once.
@@ -58,7 +65,10 @@ class Router:
         return decorator
 
     def on(
-        self, event_builder: "Type[common.EventBuilder]", /, *filters: Filter[ET],
+        self,
+        event_builder: "Type[common.EventBuilder]",
+        /,
+        *filters: Filter[ET],
     ):
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=event_builder)
@@ -67,7 +77,10 @@ class Router:
         return decorator
 
     def register(
-        self, handler, filters: Tuple[Filter, ...], event: "Type[common.EventBuilder]",
+        self,
+        handler,
+        filters: Tuple[Filter, ...],
+        event: "Type[common.EventBuilder]",
     ) -> "Router":
         handler = ensure_handler(handler, event_builder=event)
         if handler.filters:

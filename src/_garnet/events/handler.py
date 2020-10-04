@@ -3,7 +3,7 @@ from typing import Awaitable, Callable, Generic, Tuple, Type, TypeVar
 
 from telethon.events.common import EventBuilder
 
-from _garnet.events import Filter
+from _garnet.events.filter import Filter
 
 ET = TypeVar("ET")
 AsyncFunctionHandler = Callable[[ET], Awaitable[None]]

@@ -9,7 +9,11 @@ def _base_len_comparator(operator_, predicted_length):
     if predicted_length is None:
         return Filter(lambda update: operator_(len(update.raw_text or "")))
     else:
-        return Filter(lambda update: operator_(len(update.raw_text or ""), predicted_length))
+        return Filter(
+            lambda update: operator_(
+                len(update.raw_text or ""), predicted_length
+            )
+        )
 
 
 def startswith(prefix: str) -> Filter:
@@ -24,7 +28,9 @@ def startswith(prefix: str) -> Filter:
     )
 
 
-def commands(*cmd: str, prefixes: typing.Union[str, typing.Iterable[str]] = "/") -> Filter:
+def commands(
+    *cmd: str, prefixes: typing.Union[str, typing.Iterable[str]] = "/"
+) -> Filter:
     return Filter(
         lambda update: isinstance(update.text, str)
         and any(update.text.startswith(prefix) for prefix in prefixes)
@@ -33,7 +39,9 @@ def commands(*cmd: str, prefixes: typing.Union[str, typing.Iterable[str]] = "/")
 
 
 def match(expression: str) -> Filter:
-    return Filter(lambda update: bool(re.compile(expression).match(update.raw_text)))
+    return Filter(
+        lambda update: bool(re.compile(expression).match(update.raw_text))
+    )
 
 
 def exact(text: str) -> Filter:

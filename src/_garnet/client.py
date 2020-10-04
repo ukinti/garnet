@@ -2,7 +2,9 @@ import asyncio
 from typing import Awaitable, Callable
 
 from telethon import errors
-from telethon.client.telegramclient import TelegramClient as _TelethonTelegramClient
+from telethon.client.telegramclient import (
+    TelegramClient as _TelethonTelegramClient,
+)
 from telethon.client.updates import EventBuilderDict
 
 from _garnet.helpers import ctx

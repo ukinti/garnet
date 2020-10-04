@@ -1,8 +1,8 @@
 from telethon import custom, events
 
-from garnet import TelegramClient, Router, StateCtx
+from garnet import Router, TelegramClient
+from garnet.ctx import StateCtx
 from garnet.filters import State, text
-
 
 POSSIBLE_PETS = ("Doggggee |}", "Cat >.<", "Human <|", "Goose 8D")
 PETS = tuple([
@@ -27,7 +27,7 @@ async def handler(update: custom.Message):
 
 
 # // handle all /cancel's from any state if only state is not None
-@router.message(text.commands("cancel"), State == any)
+@router.message(text.commands("cancel"), any)
 async def cancel_handler(update: custom.Message):
     await update.reply("Ok. Resetting!")
     await StateCtx.get().reset_state(with_data=True)
@@ -75,6 +75,7 @@ async def pet_correct_handler(update: custom.Message):
 
 if __name__ == '__main__':
     import asyncio
+
     from garnet import EventDispatcher, Runner
     from garnet.storages import MemoryStorage
 

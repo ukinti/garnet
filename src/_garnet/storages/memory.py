@@ -21,7 +21,8 @@ class MemoryStorage(BaseStorage):
 
     async def save(self) -> None:
         warnings.warn(
-            f"{self.__class__!r} is not persistent. No data will be `saved`", stacklevel=2,
+            f"{self.__class__!r} is not persistent. No data will be `saved`",
+            stacklevel=2,
         )
 
     async def init(self):
@@ -36,7 +37,11 @@ class MemoryStorage(BaseStorage):
         if chat_id not in self.data:
             self.data[chat_id] = {}
         if user_id not in self.data[chat_id]:
-            self.data[chat_id][user_id] = {"state": None, "data": {}, "bucket": {}}
+            self.data[chat_id][user_id] = {
+                "state": None,
+                "data": {},
+                "bucket": {},
+            }
 
         return chat_id, user_id
 
