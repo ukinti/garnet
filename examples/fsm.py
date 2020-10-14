@@ -27,7 +27,7 @@ async def handler(update: custom.Message):
 
 
 # // handle all /cancel's from any state if only state is not None
-@router.message(text.commands("cancel"), any)
+@router.message(text.commands("cancel"), State.any)
 async def cancel_handler(update: custom.Message):
     await update.reply("Ok. Resetting!")
     await StateCtx.get().reset_state(with_data=True)

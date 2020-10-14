@@ -33,7 +33,7 @@ class Router:
         self.upper_filters = upper_filters
 
     # noinspection PyTypeChecker
-    def message(self, *filters: Filter[ET]):
+    def message(self, *filters: "Filter[ET]"):
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=NewMessage)
             return f_or_class
@@ -41,7 +41,7 @@ class Router:
         return decorator
 
     # noinspection PyTypeChecker
-    def callback_query(self, *filters: Filter[ET]):
+    def callback_query(self, *filters: "Filter[ET]"):
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=CallbackQuery)
             return f_or_class
@@ -49,7 +49,7 @@ class Router:
         return decorator
 
     # noinspection PyTypeChecker
-    def chat_action(self, *filters: Filter[ET]):
+    def chat_action(self, *filters: "Filter[ET]"):
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=ChatAction)
             return f_or_class
@@ -57,7 +57,7 @@ class Router:
         return decorator
 
     # noinspection PyTypeChecker
-    def message_edited(self, *filters: Filter[ET]):
+    def message_edited(self, *filters: "Filter[ET]"):
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=MessageEdited)
             return f_or_class
@@ -68,7 +68,7 @@ class Router:
         self,
         event_builder: "Type[common.EventBuilder]",
         /,
-        *filters: Filter[ET],
+        *filters: "Filter[ET]",
     ):
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=event_builder)
@@ -82,11 +82,11 @@ class Router:
         filters: Tuple[Filter, ...],
         event: "Type[common.EventBuilder]",
     ) -> "Router":
-        handler = ensure_handler(handler, event_builder=event)
+        handler = ensure_handler(handler, event_builder=event or self.event)
         if handler.filters:
-            handler.filters += tuple(ensure_filters(filters))
+            handler.filters += tuple(ensure_filters(event or self.event, filters))
         else:
-            handler.filters = tuple(ensure_filters(filters))
+            handler.filters = tuple(ensure_filters(event or self.event, filters))
 
         self.handlers.append(handler)
         return self

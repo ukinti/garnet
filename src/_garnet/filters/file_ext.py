@@ -1,6 +1,6 @@
 from telethon.utils import is_audio, is_gif, is_image, is_video
 
-from src._garnet.events import Filter
+from src._garnet.events.filter import Filter
 
 from ..helpers import var
 
