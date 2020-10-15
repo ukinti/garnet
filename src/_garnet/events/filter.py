@@ -33,7 +33,7 @@ class Filter(Generic[ET]):
     >>> from typing import Optional
     >>> from garnet import Filter, events
     >>>
-    >>> async def filter_function(event: Optional[events.NewMessage.Event]) -> bool:
+    >>> async def filter_function(e: Optional[events.NewMessage.Event]) -> bool:
     ...     return False
     ...
     >>> naive = Filter(filter_function)
@@ -42,7 +42,8 @@ class Filter(Generic[ET]):
     >>>
     >>> assert naive.is_event_naive and naive.is_awaitable
     >>> assert not aware.is_event_naive and aware.is_awaitable
-    >>> assert non_async_naive.is_event_naive and not non_async_naive.is_awaitable
+    >>> assert non_async_naive.is_event_naive
+    >>> assert not non_async_naive.is_awaitable
 
     """
 
@@ -55,9 +56,10 @@ class Filter(Generic[ET]):
     ):
         """
         :param function: A single parameter function (Optional[EventType])
-        that must return boolean (True/False) value (Can be `async def` defined function)
-        :param event_builder: telethon's EventBuilder inheritor. Mostly you don't want to
-        interact with this parameter.
+        that must return boolean (True/False) value
+        (Can be `async def` defined function)
+        :param event_builder: telethon's EventBuilder inheritor.
+        Mostly you don't want to interact with this parameter.
         """
 
         self.function = function
@@ -208,8 +210,9 @@ def ensure_filters(
     event_builder: Optional[Type[EventBuilder]],
     filters: Tuple[Union[Filter[ET], Callable[[ET], bool]], ...],
 ) -> Generator[Filter, None, None]:
-    """Generator function propagates event builder to event-builder-naive filters"""
-
+    """
+    Generator function propagates event builder to event-builder-naive filters
+    """
     for filter_ in filters:
         if isinstance(filter_, Filter):
             if not filter_.event_builder:

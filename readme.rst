@@ -22,29 +22,60 @@ Although, garnet is ``garnet``, it is named ``telegram-garnet`` on the PyPI, you
 ``pip install telegram-garnet``
 
 
+*************
+Let's dive in
+*************
+
+.. code:: python
+
+    # export GARNET_BOT_TOKEN environmental variable
+
+    from garnet import (
+        Router, EventDispatcher,
+        TelegramClient, Runner,
+        events, filters, storages, ctx,
+    )
+
+    router = Router(events.NewMessage)
+
+    @router.default(filters.text.commands("start"))
+    async def handle_start(event):
+        await event.reply(f"Hello, uid={ctx.ChatIDCtx.get()}! I'm from garnet.")
+
+    async def main():
+        client = TelegramClient(:session:, :api_id:, :api_hash:)
+        event_dp = EventDispatcher(storages.MemoryStorage(), (router, ))
+        runner = Runner(event_dp, client)
+        await runner.run_blocking()
+
+    if __name__ == "__main__":
+        import asyncio
+        asyncio.run(main())
+
+
 ************
 Key features
 ************
 
 Filters
-==========
+=======
 
 Basically ``Filter`` is a "lazy" callable which holds an optional single-parameter function.
-Filters are event naive and event aware.
+Filters are event naive and event aware. Filters are mutable, they can migrate from event-naive to event-aware in garnet.
 
 Public methods
 --------------
 
-``.is_event_naive -> bool``
-
-``.call(e: T, /) -> Awaitable[bool]``
+- ``.is_event_naive -> bool``
+- ``.call(e: T, /) -> Awaitable[bool]``
 
 Initializer
 ^^^^^^^^^^^
 
 ``Filter(function[, event_builder])``
 
-Value of the parameter ``function``
+Value of the parameter ``function`` must be function that takes exactly one argument with type `Optional[Some]` and
+returns ``bool`` either True or False.
 
 Possible operations on Filter instances
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -54,14 +85,14 @@ Possible operations on Filter instances
 Binary
 """"""
 
-``&`` is a logical AND for two filters
-``|`` is a logical OR for two filters
-``^`` is a logical XOR for two filters
+- ``&`` is a logical AND for two filters
+- ``|`` is a logical OR for two filters
+- ``^`` is a logical XOR for two filters
 
 Unary
 """""
 
-``~`` is a logical NOT for a filter
+- ``~`` is a logical NOT for a filter
 
 Examples
 ---------
@@ -111,6 +142,78 @@ Little journey
 - ``text.can_be_float()`` similarly to ``text.can_be_int`` but for floats.
 
 
+Routers
+=======
+
+Router (routing table) is a collection of handlers.
+
+Public methods
+--------------
+
+Those consist mainly from decorators.
+
+Initializer
+^^^^^^^^^^^
+
+``Router(default_event=None, *filters)``
+
+- ``default_event`` default event builder for router
+- ``*filters`` router filters, in order to get into handlers, event should pass these filters.
+
+Decorators
+^^^^^^^^^^
+
+Depending on ``event_builder`` of a decorator, filters inherit that event builder mutating themselves.
+
+- ``.default(*filters)`` event builder is default Router(**this**, ...), should not be None, must implement ``telethon.common::EventBuilder``
+
+- ``.message(*filters)`` shortcut decorator for event builder ``garnet.events::NewMessage``
+
+- ``.callback_query(*filters)`` shortcut decorator for event builder ``garnet.events::CallbackQuery``
+
+- ``.chat_action(*filters)`` shortcut decorator for event builder ``garnet.events::ChatAction``
+
+- ``.message_edited(*filters)`` shortcut decorator for event builder ``garnet.events::MessageEdited``
+
+- ``on(event_builder, /, *filters)`` pass any event builder (preferably from ``garnet.events::*``)
+
+
+etc.
+^^^^
+
+- ``.register(handler, filters, event_builder)`` register handler with binding filters and event_builder to it.
+
+
+Examples
+--------
+
+.. code:: python
+
+    from garnet import Router, events, Filter
+
+    router = Router(events.NewMessage, Filter(lambda _: True), Filter(lambda _: True))
+
+    @router.default(Filter(lambda _: True))
+    async def handler(_): pass
+
+
+Context variables
+=================
+
+``from garnet.ctx import UserIDCtx, ChatIDCtx, StateCtx``
+
+
+Usual contextual variables, with ``.get()``, ``.set()``, ``.reset()`` methods. You'll always end up using ``.get()``.
+Work with those only in handlers.
+
+Also every event builder in ``garnet.events`` is "contextfull", but for ``get``,``set``,``reset`` you shall add ``_current``
+postfix.
+
+Notes
+-----
+
+Try to use context variables everywhere not depending on other mechanisms, because they work as you want.
+
 *******************
 Contacts/Community
 *******************
@@ -126,6 +229,5 @@ Credits
 
 Finite-state machine was ported from cool BotAPI library 'aiogram', special thanks to Alex_
 
-Support lonamiwebs: `lonamiwebs <http://paypal.me/lonamiwebs>`_
-
-Support aiogram project: `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_
+- LonamiWebs (Telethon): `lonamiwebs <http://paypal.me/lonamiwebs>`_
+- aiogram project: `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_

@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, TypeVar, Union
+from typing import List, Optional, Tuple, Type, Union
+
+from telethon.events import common
 
 from _garnet.events.filter import Filter, ensure_filters
 from _garnet.events.handler import EventHandler, ensure_handler
@@ -9,24 +11,24 @@ from _garnet.patched_events import (
     NewMessage,
 )
 
-if TYPE_CHECKING:
-    from telethon.events import common
-
-    ET = Union[common.EventBuilder, Type[common.EventBuilder]]
-
-
-SomeEventT = TypeVar("SomeEventT")
+ET = Union[common.EventBuilder, Type[common.EventBuilder]]
 
 
 class Router:
+    """
+
+    """
+
     __slots__ = "event", "handlers", "upper_filters"
 
     def __init__(
-        self, default_event: "Optional[ET]", *upper_filters: Filter[None]
+        self,
+        default_event: "Optional[ET]" = None,
+        *upper_filters: Filter[None],
     ):
         """
-        BaseRouter
-        :param frozen: While registering router it can be frozen once.
+        :param default_event: Default event
+        :param upper_filters:
         """
         self.event = default_event
         self.handlers: List[Type[EventHandler]] = []
@@ -34,6 +36,7 @@ class Router:
 
     # noinspection PyTypeChecker
     def message(self, *filters: "Filter[ET]"):
+        """Decorator for `garnet.events.NewMessage` event handlers."""
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=NewMessage)
             return f_or_class
@@ -42,6 +45,7 @@ class Router:
 
     # noinspection PyTypeChecker
     def callback_query(self, *filters: "Filter[ET]"):
+        """Decorator for `garnet.events.CallbackQuery` event handlers."""
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=CallbackQuery)
             return f_or_class
@@ -50,6 +54,7 @@ class Router:
 
     # noinspection PyTypeChecker
     def chat_action(self, *filters: "Filter[ET]"):
+        """Decorator for `garnet.events.ChatAction` event handlers."""
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=ChatAction)
             return f_or_class
@@ -58,8 +63,28 @@ class Router:
 
     # noinspection PyTypeChecker
     def message_edited(self, *filters: "Filter[ET]"):
+        """Decorator for `garnet.events.MessageEdited` event handlers."""
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=MessageEdited)
+            return f_or_class
+
+        return decorator
+
+    def default(self, *filters: "Filter[ET]"):
+        """Decorator for router's default event event handlers."""
+        if self.event is None or (
+            isinstance(self.event, type)
+            and
+            issubclass(self.event, common.EventBuilder)
+        ):
+            raise ValueError(
+                "In order to use default event_builder declare it in "
+                "Router(...). "
+                f"Expected type {common.EventBuilder} got {type(self.event)!r}"
+            )
+
+        def decorator(f_or_class):
+            self.register(f_or_class, filters, event=self.event)
             return f_or_class
 
         return decorator
@@ -70,6 +95,7 @@ class Router:
         /,
         *filters: "Filter[ET]",
     ):
+        """Decorator for a specific event-aware event handlers."""
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=event_builder)
             return f_or_class
@@ -78,15 +104,18 @@ class Router:
 
     def register(
         self,
-        handler,
-        filters: Tuple[Filter, ...],
+        handler: "EventHandler[ET]",
+        filters: "Tuple[Filter, ...]",
         event: "Type[common.EventBuilder]",
     ) -> "Router":
-        handler = ensure_handler(handler, event_builder=event or self.event)
+        """
+        Entrypoint for registering event handlers on particular event builders.
+        """
+        handler = ensure_handler(handler, event_builder=event)
         if handler.filters:
-            handler.filters += tuple(ensure_filters(event or self.event, filters))
+            handler.filters += tuple(ensure_filters(event, filters))
         else:
-            handler.filters = tuple(ensure_filters(event or self.event, filters))
+            handler.filters = tuple(ensure_filters(event, filters))
 
         self.handlers.append(handler)
         return self
