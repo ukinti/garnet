@@ -11,13 +11,8 @@ from _garnet.helpers import ctx
 from _garnet.loggers import events
 
 
-class GarnetConfig(TypedDict):
-    dont_wait_for_handler: bool
-    dispatch_hook: "Callable[[EventBuilderDict], Awaitable[None]]"
-
-
 class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
-    __garnet_config__: GarnetConfig
+    __garnet_config__: 'GarnetConfig'
 
     async def _dispatch_update(self, update, others, channel_id, pts_date):
         if not self._entity_cache.ensure_cached(update):
@@ -35,7 +30,7 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
         built = EventBuilderDict(self, update, others)
 
         task = asyncio.create_task(
-            self.__garnet_config__['dispatch_hook'](built),
+            self.__garnet_config__['dispatch_hook'](built, self),
             name=f"pts_date={pts_date} update propagating"
         )
 
@@ -45,6 +40,11 @@ class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
             except Exception as unhandled_exception:
                 if not isinstance(unhandled_exception, asyncio.CancelledError) or self.is_connected():
                     events.exception(f"Got an unhandled error for pts_date={pts_date}")
+
+
+class GarnetConfig(TypedDict):
+    dont_wait_for_handler: bool
+    dispatch_hook: Callable[[EventBuilderDict, TelegramClient], Awaitable[None]]
 
 
 __all__ = ("TelegramClient", "GarnetConfig",)
