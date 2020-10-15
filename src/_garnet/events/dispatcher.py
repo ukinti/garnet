@@ -18,9 +18,6 @@ async def _solve_filters(
 ) -> bool:
     for filter_ in filters:
         if event := built[filter_.event_builder]:
-            if not event.resolved:
-                await event.resolve()
-
             event_token = event.set_current(event)
 
             try:
@@ -48,9 +45,6 @@ async def _check_then_call_router_handlers(
 ) -> bool:
     for handler in router.handlers:
         if event := built[handler.__event_builder__]:
-            if not event.resolved:
-                await event.resolve()
-
             with uc.current_user_and_chat_ctx_manager(event):
                 fsm_context = FSMContext(
                     storage, chat=uc.ChatIDCtx.get(), user=uc.UserIDCtx.get()
