@@ -62,7 +62,7 @@ async def _check_then_call_router_handlers(
                     )
 
                 try:
-                    if await _solve_filters(event, handler.filters):
+                    if await _solve_filters(built, handler.filters):
                         events.debug(
                             f"Executing handler({handler!r}) after it passed relevance test"
                         )
