@@ -22,11 +22,11 @@ Although, garnet is ``garnet``, it is named ``telegram-garnet`` on the PyPI, you
 ``pip install telegram-garnet``
 
 
-****************
-🔑 Key features
-****************
+************
+Key features
+************
 
-🔫 Filters
+Filters
 ==========
 
 Basically ``Filter`` is a "lazy" callable which holds an optional single-parameter function.
@@ -88,22 +88,28 @@ Text filters
 
 Operations on ``Filter((e: Some) -> bool); Some.raw_text or Some.text``
 
+Import
+""""""
+
 ``from garnet.filters import text``
 
-``text.Len`` is a special class for `len(Some.raw_text ... "")` operations.
-Supports logical comparison operations, such are ``==``, ``>``, ``>=``, ``<``, ``<=``
+Little journey
+""""""""""""""
 
-``text.startswith(prefix: str, /)`` will evaluates to ``Some.raw_text.startswith(prefix)``
+- ``text.Len`` is a special class for ``len(Some.raw_text ... "")`` operations. Supports logical comparison operations, such are ``==``, ``>``, ``>=``, ``<``, ``<=``
 
-``text.commands(*cmds: str, prefixes="/", to_set=True)`` will evaluate to check if command is within ``cmd`` (ignores mentions, and works on `Some.text`)
+- ``text.startswith(prefix: str, /)`` will evaluates to ``Some.raw_text.startswith(prefix)``
 
-``text.match(rexpr: str, flags=0, /)`` will evaluate to ``re.compile(rexpr, flags).match(Some.raw_text)``
+- ``text.commands(*cmds: str, prefixes="/", to_set=True)`` will evaluate to check if command is within ``cmd`` (ignores mentions, and works on `Some.text`)
 
-``text.between(*texts: str, to_set=True)`` will evaluate to ``Some.raw_text in texts``
+- ``text.match(rexpr: str, flags=0, /)`` will evaluate to ``re.compile(rexpr, flags).match(Some.raw_text)``
 
-``text.can_be_int(base=10)`` will evaluate to ``try{int(Some.raw_text);return True;}except(ValueError){return False;}``
+- ``text.between(*texts: str, to_set=True)`` will evaluate to ``Some.raw_text in texts``
 
-``text.can_be_float()`` similarly to ``text.can_be_int`` but for floats.
+- ``text.can_be_int(base=10)`` will evaluate to ``try{int(Some.raw_text);return True;}except(ValueError){return False;}``
+
+- ``text.can_be_float()`` similarly to ``text.can_be_int`` but for floats.
+
 
 *******************
 Contacts/Community
@@ -114,13 +120,9 @@ You can find me on telegram by `@martin_winks <https://telegram.me/martin_winks>
 Our small telegram `group <https://t.me/joinchat/B2cC_hknbKGm3_G8N9qifQ>`_
 
 
-Router
-=======
-
-
-**********************
-🤗 Credits
-**********************
+*******
+Credits
+*******
 
 Finite-state machine was ported from cool BotAPI library 'aiogram', special thanks to Alex_
 
