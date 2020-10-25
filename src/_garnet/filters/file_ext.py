@@ -15,6 +15,20 @@ class _FilterVar(var.Var):
 
 
 class File:
+    """
+    Namespace for file extension filters.
+
+    Usage:
+
+    >>> from garnet.filters import File
+    ...
+    >>> @router.message(File.is_video & (File.mp4 | File.mov))
+    ... async def handle_video(event): pass
+    >>>
+    >>> @router.message(File.is_audio)
+    ... async def handle_audio(): pass
+    """
+
     is_video: Filter = Filter(lambda event: is_video(event.media))
     is_image: Filter = Filter(lambda event: is_image(event.media))
     is_gif: Filter = Filter(lambda event: is_gif(event.document))
