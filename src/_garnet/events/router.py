@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 from telethon.events import common
 
@@ -12,14 +12,15 @@ from _garnet.patched_events import (
 )
 
 ET = Union[common.EventBuilder, Type[common.EventBuilder]]
+UnwrappedIntermediateT = Callable[[Type[EventHandler], common.EventCommon], Any]
 
 
 class Router:
     """
-
+    Router class
     """
 
-    __slots__ = "event", "handlers", "upper_filters"
+    __slots__ = "event", "handlers", "upper_filters", "intermediates"
 
     def __init__(
         self,
@@ -28,15 +29,44 @@ class Router:
     ):
         """
         :param default_event: Default event
-        :param upper_filters:
+        :param upper_filters: Filters to be used to test event
+        when event reaches this router
         """
         self.event = default_event
         self.handlers: List[Type[EventHandler]] = []
         self.upper_filters = upper_filters
+        self.intermediates: List[UnwrappedIntermediateT] = []
+
+    def add_use(self, intermediate: UnwrappedIntermediateT) -> None:
+        """
+        Add async generator function to intermediates.
+
+        :param intermediate: asynchronous generator function
+        """
+        self.intermediates.append(intermediate)
+
+    def use(self):
+        """
+        Use `.use(...)` for adding router check layer
+
+        Example:
+
+        >>> @router.use()
+        ... async def router_intermediate(handler, event):
+        ...    async with my_shiny_database.open_txn():
+        ...        await handler(event)
+        """
+
+        def decorator(func: UnwrappedIntermediateT) -> UnwrappedIntermediateT:
+            self.add_use(func)
+            return func
+
+        return decorator
 
     # noinspection PyTypeChecker
     def message(self, *filters: "Filter[ET]"):
         """Decorator for `garnet.events.NewMessage` event handlers."""
+
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=NewMessage)
             return f_or_class
@@ -46,6 +76,7 @@ class Router:
     # noinspection PyTypeChecker
     def callback_query(self, *filters: "Filter[ET]"):
         """Decorator for `garnet.events.CallbackQuery` event handlers."""
+
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=CallbackQuery)
             return f_or_class
@@ -55,6 +86,7 @@ class Router:
     # noinspection PyTypeChecker
     def chat_action(self, *filters: "Filter[ET]"):
         """Decorator for `garnet.events.ChatAction` event handlers."""
+
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=ChatAction)
             return f_or_class
@@ -64,6 +96,7 @@ class Router:
     # noinspection PyTypeChecker
     def message_edited(self, *filters: "Filter[ET]"):
         """Decorator for `garnet.events.MessageEdited` event handlers."""
+
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=MessageEdited)
             return f_or_class
@@ -74,8 +107,7 @@ class Router:
         """Decorator for router's default event event handlers."""
         if self.event is None or (
             isinstance(self.event, type)
-            and
-            issubclass(self.event, common.EventBuilder)
+            and issubclass(self.event, common.EventBuilder)
         ):
             raise ValueError(
                 "In order to use default event_builder declare it in "
@@ -96,6 +128,7 @@ class Router:
         *filters: "Filter[ET]",
     ):
         """Decorator for a specific event-aware event handlers."""
+
         def decorator(f_or_class):
             self.register(f_or_class, filters, event=event_builder)
             return f_or_class

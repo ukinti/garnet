@@ -6,10 +6,10 @@ from telethon.tl.custom.chatgetter import ChatGetter
 from telethon.tl.custom.sendergetter import SenderGetter
 
 UserIDCtx: contextvars.ContextVar[Optional[int]] = contextvars.ContextVar(
-    "CurrentUser", default=None
+    "user_id", default=None
 )
 ChatIDCtx: contextvars.ContextVar[Optional[int]] = contextvars.ContextVar(
-    "CurrentChat", default=None
+    "chat_id", default=None
 )
 
 

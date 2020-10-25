@@ -1,16 +1,31 @@
-from typing import Sequence, Tuple
+import functools
+from typing import Any, List, Sequence, Tuple, Type, TypeVar
 
 from telethon.client.updates import EventBuilderDict
 
 from _garnet.client import TelegramClient
 from _garnet.events.filter import Filter
 from _garnet.events.fsm_context import FSMContext
+from _garnet.events.handler import EventHandler
 from _garnet.events.router import Router
 from _garnet.loggers import events
 from _garnet.patched_events import SkipHandler, StopPropagation
 from _garnet.storages.base import BaseStorage
 from _garnet.vars import fsm
 from _garnet.vars import user_and_chat as uc
+
+_T = TypeVar("_T")
+
+
+def _wrap_intermediates(intermediates: List, handler: Type[EventHandler]):
+    @functools.wraps(handler)
+    def middlepoint(event) -> Any:
+        return handler(event)
+
+    mp = middlepoint
+    for inter in reversed(intermediates):
+        mp = functools.partial(inter, mp)
+    return mp
 
 
 async def _solve_filters(
@@ -28,7 +43,8 @@ async def _solve_filters(
 
         else:
             events.debug(
-                f"Got event-naive filter: {filter_!r}, calling it with default `None`"
+                f"Got event-naive filter: {filter_!r}, "
+                f"calling it with default `None`"
             )
             if await filter_.call(None) is not True:
                 return False
@@ -46,8 +62,9 @@ async def _check_then_call_router_handlers(
     for handler in router.handlers:
         if event := built[handler.__event_builder__]:
             with uc.current_user_and_chat_ctx_manager(event):
+
                 fsm_context = FSMContext(
-                    storage, chat=uc.ChatIDCtx.get(), user=uc.UserIDCtx.get()
+                    storage, chat=uc.ChatIDCtx.get(), user=uc.UserIDCtx.get(),
                 )
                 event_token = event.set_current(event)
                 fsm_token = fsm.StateCtx.set(fsm_context)
@@ -64,14 +81,16 @@ async def _check_then_call_router_handlers(
                 try:
                     if await _solve_filters(built, handler.filters):
                         events.debug(
-                            f"Executing handler({handler!r}) after it passed relevance test"
+                            f"Executing handler({handler!r}) after it "
+                            f"passed relevance test"
                         )
-                        await handler(event)
+                        await _wrap_intermediates(router.intermediates, handler)
                         return True
 
                 except StopPropagation:
                     events.debug(
-                        f"Stopping propagation for all next handlers after {handler!r}"
+                        f"Stopping propagation for all next handlers "
+                        f"after {handler!r}"
                     )
                     break
 

@@ -51,9 +51,8 @@ def commands(
     return Filter(
         lambda update: isinstance(update.text, str)
         and any(update.text.startswith(prefix) for prefix in prefixes)
-        and (update.text
-             .split(maxsplit=1)[0][1:]
-             .split("@", maxsplit=1)[0]) in cmd
+        and (update.text.split(maxsplit=1)[0][1:].split("@", maxsplit=1)[0])
+        in cmd
     )
 
 
@@ -63,9 +62,7 @@ def match(expression: str, flags: int = 0, /) -> Filter:
     """
     rex = re.compile(expression, flags=flags)
 
-    return Filter(
-        lambda update: bool(rex.match(update.raw_text))
-    )
+    return Filter(lambda update: bool(rex.match(update.raw_text)))
 
 
 def exact(text: str, /) -> Filter:
@@ -94,8 +91,7 @@ def can_be_int(base: int = 10) -> Filter:
 
     return Filter(
         lambda event: _return_false_on_error(
-            functools.partial(func, event.raw_text),
-            ValueError,
+            functools.partial(func, event.raw_text), ValueError,
         )
     )
 
@@ -106,8 +102,7 @@ def can_be_float() -> Filter:
     """
     return Filter(
         lambda event: _return_false_on_error(
-            functools.partial(float, event.raw_text),
-            ValueError,
+            functools.partial(float, event.raw_text), ValueError,
         )
     )
 

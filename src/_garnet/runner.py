@@ -1,6 +1,6 @@
-from typing import TypedDict, Optional, Callable
+from typing import Callable, Optional, TypedDict
 
-from _garnet.client import TelegramClient, GarnetConfig
+from _garnet.client import GarnetConfig, TelegramClient
 from _garnet.events.dispatcher import EventDispatcher
 
 
@@ -50,9 +50,7 @@ class Runner:
         try:
             await self._dispatcher.storage.init()
             self._bot.set_current(self._bot)
-            await self._bot.start(
-                bot_token=self._runtime_cfg['bot_token'],
-            )
+            await self._bot.start(bot_token=self._runtime_cfg["bot_token"],)
             await self._bot.run_until_disconnected()
         finally:
             if bot_ctx_token is not None:

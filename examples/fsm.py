@@ -5,10 +5,9 @@ from garnet.ctx import StateCtx
 from garnet.filters import State, text
 
 POSSIBLE_PETS = ("Doggggee |}", "Cat >.<", "Human <|", "Goose 8D")
-PETS = tuple([
-    (custom.Button.text(_petty, resize=True),)
-    for _petty in POSSIBLE_PETS
-])
+PETS = tuple(
+    [(custom.Button.text(_petty, resize=True),) for _petty in POSSIBLE_PETS]
+)
 
 
 class States:
@@ -50,7 +49,9 @@ ageStateFilter = State.exact(States.age)
 @router.message(ageStateFilter & text.isdigit())
 async def age_correct_handler(update: custom.Message):
     await StateCtx.get().update_data(age=int(update.raw_text))
-    await update.reply("Cool! Now please select your favourite pet:", buttons=PETS)
+    await update.reply(
+        "Cool! Now please select your favourite pet:", buttons=PETS
+    )
     await StateCtx.get().set_state(States.pet)
 
 
@@ -73,16 +74,14 @@ async def pet_correct_handler(update: custom.Message):
     await StateCtx.get().reset_state(with_data=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import asyncio
 
     from garnet import EventDispatcher, Runner
     from garnet.storages import MemoryStorage
 
     bot = TelegramClient(
-        session="change me",
-        api_id="change me",
-        api_hash="change me"
+        session="change me", api_id="change me", api_hash="change me"
     )
     dispatcher = EventDispatcher(MemoryStorage(), [router])
     asyncio.run(Runner(dispatcher, bot, True).run_blocking())

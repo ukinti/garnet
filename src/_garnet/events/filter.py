@@ -4,7 +4,6 @@ import functools
 import inspect
 import operator
 from typing import (
-    Any,
     Awaitable,
     Callable,
     Generator,
