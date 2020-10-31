@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union, Generator
 
 from telethon.events import common
 
@@ -20,7 +20,9 @@ class Router:
     Router class
     """
 
-    __slots__ = "event", "handlers", "upper_filters", "intermediates"
+    __slots__ = (
+        "event", "_handlers", "upper_filters", "_intermediates", "children",
+    )
 
     def __init__(
         self,
@@ -33,9 +35,10 @@ class Router:
         when event reaches this router
         """
         self.event = default_event
-        self.handlers: List[Type[EventHandler]] = []
+        self._handlers: List[Type[EventHandler]] = []
         self.upper_filters = upper_filters
-        self.intermediates: List[UnwrappedIntermediateT] = []
+        self._intermediates: List[UnwrappedIntermediateT] = []
+        self.children: "List[Router]" = []
 
     def add_use(self, intermediate: UnwrappedIntermediateT) -> None:
         """
@@ -43,7 +46,7 @@ class Router:
 
         :param intermediate: asynchronous generator function
         """
-        self.intermediates.append(intermediate)
+        self._intermediates.append(intermediate)
 
     def use(self):
         """
@@ -62,6 +65,34 @@ class Router:
             return func
 
         return decorator
+
+    def include(self, router: "Router") -> "Router":
+        if self is router:
+            raise ValueError(f"Router({router!r}) cannot include it to itself.")
+
+        if router in self.children:
+            raise ValueError(
+                f"Router({router!r}) is already included for {self!r}."
+            )
+
+        self.children.append(router)
+        return self
+
+    @property
+    def handlers(self) -> Generator[Type[EventHandler], None, None]:
+        for handler in self._handlers:
+            yield handler
+        for child in self.children:
+            yield from child.handlers
+
+    @property
+    def intermediates(
+        self,
+    ) -> Generator[Type[UnwrappedIntermediateT], None, None]:
+        for handler in self._intermediates:
+            yield handler
+        for child in self.children:
+            yield from child.intermediates
 
     # noinspection PyTypeChecker
     def message(self, *filters: "Filter[ET]"):
@@ -150,5 +181,5 @@ class Router:
         else:
             handler.filters = tuple(ensure_filters(event, filters))
 
-        self.handlers.append(handler)
+        self._handlers.append(handler)
         return self

@@ -29,6 +29,8 @@ ipython = "^7.15.0"
 import-linter = "^1.1"
 flake8 = "^3.8.3"
 isort = "^5.5.2"
+pytest = "^6.1.2"
+PySocks = "^1.7.1"
 
 [tool.poetry.extras]
 redis = ["aioredis"]

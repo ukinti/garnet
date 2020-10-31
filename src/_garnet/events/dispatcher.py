@@ -1,5 +1,5 @@
 import functools
-from typing import Any, List, Sequence, Tuple, Type, TypeVar
+from typing import Any, Sequence, Optional, Tuple, Type, TypeVar, Callable
 
 from telethon.client.updates import EventBuilderDict
 
@@ -11,21 +11,21 @@ from _garnet.events.router import Router
 from _garnet.loggers import events
 from _garnet.patched_events import SkipHandler, StopPropagation
 from _garnet.storages.base import BaseStorage
+from _garnet.storages.memory import MemoryStorage
 from _garnet.vars import fsm
 from _garnet.vars import user_and_chat as uc
 
 _T = TypeVar("_T")
 
 
-def _wrap_intermediates(intermediates: List, handler: Type[EventHandler]):
+def _wrap_intermediates(intermediates: Tuple, handler: Type[EventHandler]):
     @functools.wraps(handler)
-    def middlepoint(event) -> Any:
+    def mpa(event) -> Any:
         return handler(event)
 
-    mp = middlepoint
     for inter in reversed(intermediates):
-        mp = functools.partial(inter, mp)
-    return mp
+        mpa = functools.partial(inter, mpa)
+    return mpa
 
 
 async def _solve_filters(
@@ -70,6 +70,7 @@ async def _check_then_call_router_handlers(
                 fsm_token = fsm.StateCtx.set(fsm_context)
                 client_token = client.set_current(client)
 
+                # noinspection PyUnreachableCode
                 if __debug__:
                     events.debug(
                         "Current context configuration: {"
@@ -84,7 +85,9 @@ async def _check_then_call_router_handlers(
                             f"Executing handler({handler!r}) after it "
                             f"passed relevance test"
                         )
-                        await _wrap_intermediates(router.intermediates, handler)
+                        await _wrap_intermediates(
+                            tuple(router.intermediates), handler,
+                        )(event)
                         return True
 
                 except StopPropagation:
@@ -106,24 +109,30 @@ async def _check_then_call_router_handlers(
     return False
 
 
-class EventDispatcher:
-    __slots__ = "storage", "_routers"
+def make_handle(
+    routers: Sequence[Router],
+    storage: Optional[BaseStorage] = None,
+    *,
+    no_storage_warning: bool = False,
+) -> Tuple[BaseStorage, Callable]:
+    if storage is None:
+        if not no_storage_warning:
+            # todo warn user that default memory storage is being used
+            pass
 
-    def __init__(
-        self, storage: BaseStorage, routers: Sequence[Router],
-    ):
-        self.storage = storage
-        self._routers = routers
+        storage = MemoryStorage()
 
-    async def handle(self, built: EventBuilderDict, client: TelegramClient, /):
-        for router in self._routers:
+    async def handle(built: EventBuilderDict, client: TelegramClient, /):
+        for router in routers:
             ok = await _solve_filters(built, router.upper_filters)
             if ok:
                 ok = await _check_then_call_router_handlers(
-                    built, router, self.storage, client
+                    built, router, storage, client
                 )
                 if ok:
                     break
 
+    return storage, handle
 
-__all__ = ("EventDispatcher",)
+
+__all__ = ("make_handle",)
