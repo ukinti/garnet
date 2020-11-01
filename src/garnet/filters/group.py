@@ -1,13 +1,12 @@
 from _garnet.filters.state import (
-    ENTRYPOINT_STATE,
     ANY_STATE_EXCEPT_NONE,
-    NoTop,
-    NoPrev,
-    NoNext,
-    M,
+    ENTRYPOINT_STATE,
     Group,
+    M,
+    NoNext,
+    NoPrev,
+    NoTop,
 )
-
 
 __all__ = (
     "M",
@@ -18,4 +17,3 @@ __all__ = (
     "NoPrev",
     "NoNext",
 )
-

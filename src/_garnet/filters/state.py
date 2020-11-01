@@ -1,13 +1,13 @@
 from typing import (
-    Container,
-    Union,
-    Type,
-    Tuple,
-    Dict,
-    cast,
-    Literal,
-    Iterable,
     Any,
+    Container,
+    Dict,
+    Iterable,
+    Literal,
+    Tuple,
+    Type,
+    Union,
+    cast,
 )
 
 from _garnet.events.filter import Filter
@@ -54,8 +54,7 @@ _ilc_descriptor = type(
 class _MetaCurrentState(type):
     @classmethod
     def __eq__(
-        mcs,
-        _s: "Union[M, Container[M], Type[Group], Literal['*']]",
+        mcs, _s: "Union[M, Container[M], Type[Group], Literal['*']]",
     ) -> Filter:
         if _s == ANY_STATE_EXCEPT_NONE:
             _f = any_state_except_none_func
@@ -64,6 +63,7 @@ class _MetaCurrentState(type):
             _f = no_state_but_none_func
 
         elif isinstance(_s, type) and issubclass(_s, Group):
+
             async def _f(_):
                 current_state = await fsm.StateCtx.get().get_state()
 
@@ -75,6 +75,7 @@ class _MetaCurrentState(type):
                 return False
 
         elif isinstance(_s, M):
+
             async def _f(_):
                 current_state = await fsm.StateCtx.get().get_state()
                 ok = current_state == _s.name
@@ -85,7 +86,7 @@ class _MetaCurrentState(type):
         else:
             raise ValueError(
                 "`state` parameter must be any of: "
-                "`M` object, `Group` class, `None` singleton, \"*\" "
+                '`M` object, `Group` class, `None` singleton, "*" '
                 "(star notation for any state)"
             )
 
@@ -93,8 +94,7 @@ class _MetaCurrentState(type):
 
     @classmethod
     def exact(
-        mcs,
-        state: "Union[M, Container[M], Type[Group], Literal['*']]",
+        mcs, state: "Union[M, Container[M], Type[Group], Literal['*']]",
     ) -> Filter:
         # noinspection PyTypeChecker
         return State == state  # type: ignore
@@ -119,6 +119,8 @@ class State(metaclass=_MetaCurrentState):
         CurrentState == ["state_1", "state_2"]
         CurrentState == "state_1"
     """
+
+
 # endregion
 
 
@@ -155,9 +157,7 @@ class M:
 
     def __set_name__(self, owner: "_MetaStateGroup", name: str) -> None:
         if type(owner) != _MetaStateGroup:
-            raise ValueError(
-                "State should be declared only in `StateGroup`"
-            )
+            raise ValueError("State should be declared only in `StateGroup`")
 
         self.owner = owner
         self._sh_name = name
@@ -203,18 +203,20 @@ def is_reserved(name: str, /) -> bool:
     Check if the name is reserved for state group.
     """
 
-    return name in frozenset((
-        "parent",
-        "children",
-        "states",
-        "first",
-        "last",
-        "all_state_names",
-        "all_state_objects",
-        "all_children",
-        "_group_name",
-        "full_group_name",
-    ))
+    return name in frozenset(
+        (
+            "parent",
+            "children",
+            "states",
+            "first",
+            "last",
+            "all_state_names",
+            "all_state_objects",
+            "all_children",
+            "_group_name",
+            "full_group_name",
+        )
+    )
 
 
 class _MetaStateGroup(type):
@@ -225,9 +227,7 @@ class _MetaStateGroup(type):
         namespace: Dict[str, Any],
         **kwargs: Any,
     ) -> "Type[Group]":
-        cls = super(_MetaStateGroup, mcs).__new__(
-            mcs, name, bases, namespace
-        )
+        cls = super(_MetaStateGroup, mcs).__new__(mcs, name, bases, namespace)
 
         states = []
         children = []
@@ -358,8 +358,8 @@ class _MetaStateGroup(type):
                     f"{main_group_name}_{_depth+1}{len(namespace)}"
                 )
 
-                namespace[inner_group_name] = (
-                    cls.from_iter(sog, inner_group_name, _depth + 1)
+                namespace[inner_group_name] = cls.from_iter(
+                    sog, inner_group_name, _depth + 1
                 )
             else:
                 raise TypeError(
@@ -367,11 +367,7 @@ class _MetaStateGroup(type):
                     f" not {type(sog).__name__}"
                 )
 
-        return _MetaStateGroup(
-            main_group_name,
-            (Group,),
-            namespace,
-        )
+        return _MetaStateGroup(main_group_name, (Group,), namespace,)
 
 
 class Group(metaclass=_MetaStateGroup):
@@ -387,6 +383,8 @@ class Group(metaclass=_MetaStateGroup):
         >>>
         >>> assert MyGroup.full_group_name == "MyGroup"
     """
+
+
 # endregion
 
 

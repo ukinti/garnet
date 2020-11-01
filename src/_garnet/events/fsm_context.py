@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 from _garnet.filters.state import M
 from _garnet.storages.base import BaseStorage
@@ -24,8 +24,8 @@ class FSMContext:
             chat=self.chat, user=self.user, data=data, **kwargs
         )
 
-    async def set_state(self, state: Optional[Union[str, M]] = None) -> None:
-        if isinstance(state, M):
+    async def set_state(self, state: Optional[M] = None) -> None:
+        if state is not None:
             state = state.name
 
         await self.storage.set_state(

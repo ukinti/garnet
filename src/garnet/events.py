@@ -1,3 +1,4 @@
+from _garnet.events.fsm_context import FSMContext
 from _garnet.patched_events import (
     Album,
     CallbackQuery,
@@ -24,4 +25,5 @@ __all__ = (
     "InlineQuery",
     "StopPropagation",
     "SkipHandler",
+    "FSMContext",
 )

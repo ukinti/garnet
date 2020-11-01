@@ -28,29 +28,37 @@ Let's dive in
 
 .. code:: python
 
-    # export GARNET_BOT_TOKEN environmental variable
+    # export BOT_TOKEN, APP_ID, APP_HASH env vars.
 
-    from garnet import (
-        Router, EventDispatcher,
-        TelegramClient, Runner,
-        events, filters, storages, ctx,
-    )
+    from garnet import Router, events, ctx
+    from garnet.filters import State, text, group
+    from garnet.storages import MemoryStorage
 
-    router = Router(events.NewMessage)
+    router = Router(events.NewMessage)  # declare a router that will handle message event by default
+    UserStates = group.Group.from_iter(["echo"])  # declare users states
 
-    @router.default(filters.text.commands("start"))
-    async def handle_start(event):
-        await event.reply(f"Hello, uid={ctx.ChatIDCtx.get()}! I'm from garnet.")
+    # register handler for "/start" commands for users with none yet set state
+    @router.default(text.commands("start"), State.entry)
+    async def entrypoint(event):
+        await event.reply("You entered echo zone!\n/cancel to exit")
+        fsm = ctx.StateCtx.get()  # get FSMContext of current user
+        await fsm.set_state(UserStates.echo)
 
-    async def main():
-        client = TelegramClient(:session:, :api_id:, :api_hash:)
-        event_dp = EventDispatcher(storages.MemoryStorage(), (router, ))
-        runner = Runner(event_dp, client)
-        await runner.run_blocking()
+    # register handler for "/cancel" commands for users that have entered any state
+    @router.default(text.commands("cancel"), State.any)
+    async def cancel(event):
+        await event.reply("Cancelled :)\n/start to restart")
+        await ctx.StateCtx.get().set_state(None)
+
+    # handle any message from users with state=UserState.echo
+    @router.default(State.exact(UserState.echo))
+    async def echo(event):
+        await event.reply(event)
 
     if __name__ == "__main__":
         import asyncio
-        asyncio.run(main())
+        from garnet import run
+        asyncio.run(run(router, MemoryStorage()))
 
 
 ************

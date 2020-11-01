@@ -1,11 +1,8 @@
-from telethon import events, sessions
-
-from garnet import Router, TelegramClient, run_bot, make_handle
+from garnet import Router, ctx, run
 from garnet.filters import text, State, group
-from garnet import ctx
 from garnet.storages import MemoryStorage
 
-router = Router(default_event=events.NewMessage)
+router = Router()
 
 
 class States(group.Group):
@@ -15,7 +12,7 @@ class States(group.Group):
 
 @router.message(text.commands("start", prefixes=".!/") & State.entry)
 async def response(event):
-    await event.reply("Hi! Congrats, you're stuck now 👿")
+    await event.reply("Hi! Congrats, you're stuck now!")
     await ctx.StateCtx.get().set_state(States.first)
 
 
@@ -33,18 +30,10 @@ async def for_x_states(event):
 
 
 async def main():
-    bot = TelegramClient(
-        sessions.StringSession(),
-        api_id=0,  # todo: ChangeMe,
-        api_hash="",  # todo: ChangeMe
-    )
-
     main_router = Router().include(router)
-    handle_config = make_handle([main_router], MemoryStorage())
-    await run_bot(handle_config, bot)
+    await run(main_router, MemoryStorage())
 
 
 if __name__ == "__main__":
     import asyncio
-
     asyncio.run(main())
