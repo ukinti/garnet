@@ -156,7 +156,7 @@ Little journey
 """"""""""""""
 
 - ``State.any`` will evaluate to match any state but not ``None``
-- ``State.entry`` will evaluate ``True`` only ``None``
+- ``State.entry`` will evaluate to ``True`` if only current state is ``None``
 - ``State.exact(state: GroupT | M | "*")`` when "*" is passed will use ``State.any``, when states group is passed will check if current state is any states from the group, when state group member (``M``) passed will check if current state is exactly this state
 - ``State == {some}`` will call ``State.exact(state=some)``
 
@@ -190,9 +190,11 @@ group.Group
 
 Group of state members declared as a class (can be nested)
 
-- ``first`` returns (``M``) the first declared member
-- ``last`` returns (``M``) the last declared member
+- ``.first`` returns (``M``) the first declared member
+- ``.last`` returns (``M``) the last declared member
 
+**Note**
+``.first`` and ``.last`` are reserved "keywords" for state
 
 Usage
 """""

@@ -13,7 +13,7 @@ class States(group.Group):
     state_b = group.M()
 
 
-@router.message(text.commands("start", prefixes=".!/") | State.entry)
+@router.message(text.commands("start", prefixes=".!/") & State.entry)
 async def response(event):
     await event.reply("Hi! Congrats, you're stuck now 👿")
     await ctx.StateCtx.get().set_state(States.first)
