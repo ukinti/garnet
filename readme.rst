@@ -323,17 +323,40 @@ Nested routers and a little intermediate
 Context variables
 =================
 
-``from garnet.ctx import UserIDCtx, ChatIDCtx, StateCtx``
+Users states
+------------
 
+``from garnet.ctx import StateCtx, MCtx``
+
+``MCtx`` is context variable that points to the current states group member (use it carefully)
+it's set in ``State`` filters
+
+
+``StateCtx`` points to ``garnet.event::FSMContext``
+
+
+User and chat IDs
+-----------------
+
+``from garnet.ctx import UserIDCtx, ChatIDCtx``
+
+Those will be set after router filters and before handler filters and handlers calls.
+
+Handler
+-------
+
+``from garnet.ctx import HandlerCtx``
+
+``HandlerCtx`` points to currently executing handler.
+
+Note
+----
 
 Usual contextual variables, with ``.get()``, ``.set()``, ``.reset()`` methods. You'll always end up using ``.get()``.
-Work with those only in handlers.
+Work with those only in handlers or handler filters.
 
-Also every event builder in ``garnet.events`` is "contextfull", but for ``get``,``set``,``reset`` you shall add ``_current``
+Also every event builder in ``garnet.events`` is "contextfull", but for ``get``, ``set``, ``reset`` you shall add ``_current``
 postfix.
-
-Notes
------
 
 Try to use context variables everywhere not depending on other mechanisms, because they work as you want.
 
@@ -352,5 +375,6 @@ Credits
 
 Finite-state machine was ported from cool BotAPI library 'aiogram', special thanks to Alex_
 
-- LonamiWebs (Telethon): `lonamiwebs <http://paypal.me/lonamiwebs>`_
-- aiogram project: `JRootJunior <https://opencollective.com/aiogram/organization/0/website>`_
+You can donate to:
+- LonamiWebs for Telethon project: `paypal <http://paypal.me/lonamiwebs>`_
+- AIOGram project: `opencollective <https://opencollective.com/aiogram/organization/0/website>`_
