@@ -221,6 +221,17 @@ Usage
     # --- some code ---
 
 
+Note
+""""
+
+Think of groups as an immutable(not really...) linked list of connected group members
+As you can see in the example above we use nested states groups.
+One thing about about ``M.[next/prev/top]``.
+We can go to ``Users.Pet.ask_name`` from ``Users.ask_age`` using ``Users.ask_age.next``,
+but not backwards as someone could expect with ``Users.Pet.ask_name.prev`` (will actually raise ``NoPrev``)
+Nested group members do not know anything about upper members, but they have "owners" which have access to their parent groups and
+in order to access parent of owner of ``x = Users.Pet.ask_name``, we would use ``x.owner``
+
 Routers
 =======
 

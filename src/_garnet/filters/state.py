@@ -120,7 +120,7 @@ class M:
             )
 
         self.owner = owner
-        self.name = owner.__full_group_name__ + name
+        self.name = ".".join((owner.__full_group_name__, name))
 
     def __str__(self) -> str:
         return self.name
