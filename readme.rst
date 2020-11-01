@@ -142,6 +142,85 @@ Little journey
 - ``text.can_be_float()`` similarly to ``text.can_be_int`` but for floats.
 
 
+State filters
+^^^^^^^^^^^^^
+
+Operations on users' states.
+
+Import
+""""""
+
+``from garnet.filters import State``
+
+Little journey
+""""""""""""""
+
+- ``State.any`` will evaluate to match any state but not ``None``
+- ``State.entry`` will evaluate ``True`` only ``None``
+- ``State.exact(state: GroupT | M | "*")`` when "*" is passed will use ``State.any``, when states group is passed will check if current state is any states from the group, when state group member (``M``) passed will check if current state is exactly this state
+- ``State == {some}`` will call ``State.exact(state=some)``
+
+Note
+""""
+
+State filter has effect on ``garnet.ctx.MCtx``.
+And if you're not sure what are you doing try not to apply logical operators on ``State`` filters.
+Simply, don't do ``~State.any`` or ``~State.exact(...some...)``
+
+
+States declaration
+^^^^^^^^^^^^^^^^^^
+
+Import
+""""""
+
+``from garnet.filters import group``
+
+group.M (state group Member)
+""""""""""""""""""""""""""""
+
+*yes, "M" stands for member.*
+
+- ``.next`` return the next ``M`` in the group or raise ``group.NoNext`` exception
+- ``.prev`` return the previous ``M`` in the group or raise ``group.NoPrev`` exception
+- ``.top`` return the top (head) ``M`` in the group or raise ``group.NoTop`` exception
+
+group.Group
+"""""""""""
+
+Group of state members declared as a class (can be nested)
+
+- ``first`` returns (``M``) the first declared member
+- ``last`` returns (``M``) the last declared member
+
+
+Usage
+"""""
+
+.. code:: python
+
+    from garnet.filters import group, State
+
+    class Users(group.Group):
+        ask_name = group.M()
+        ask_age = group.M()
+
+        class Pet(group.Group):
+            ask_name = group.M()
+            ask_age = group.M()
+
+        class Hobby(group.Group):
+            frequency = group.M()
+            ask_if_popular = group.M()
+
+    # 💫 just imagine we already have router 💫
+
+    @router.default(State.exact(Users))  # will handle all states in "Users"
+    # --- some code ---
+    @router.default(State.exact(Users.Pet.ask_age))  # will handle only if current state is equal to "Users.Pet.ask_age"
+    # --- some code ---
+
+
 Routers
 =======
 
@@ -175,17 +254,23 @@ Depending on ``event_builder`` of a decorator, filters inherit that event builde
 
 - ``.message_edited(*filters)`` shortcut decorator for event builder ``garnet.events::MessageEdited``
 
-- ``on(event_builder, /, *filters)`` pass any event builder (preferably from ``garnet.events::*``)
+- ``.on(event_builder, /, *filters)`` pass any event builder (preferably from ``garnet.events::*``)
 
+- ``.use()`` use this decorator for intermediates that are called after filters
 
 etc.
 ^^^^
 
+- ``.add_use(intermediate, /)`` register an intermediate which will be called after filters for handlers
 - ``.register(handler, filters, event_builder)`` register handler with binding filters and event_builder to it.
+- ``.include(router, /)`` "include" passed router in the callee as its child router
 
 
 Examples
 --------
+
+Simple cases
+^^^^^^^^^^^^
 
 .. code:: python
 
@@ -195,6 +280,23 @@ Examples
 
     @router.default(Filter(lambda _: True))
     async def handler(_): pass
+
+Nested routers and a little intermediate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    from my_project.routers import public_router, admin_router
+    from my_project.logging import put_event
+
+    from garnet import Router, events
+
+    common_router = Router().include(public_router).include(admin_router)
+
+    @common_router.use()
+    async def intermediate(handler, event):
+        await put_event(event, nowait=True)
+        await handler(event)
 
 
 Context variables
