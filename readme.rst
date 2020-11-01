@@ -7,10 +7,9 @@ About
 
 garnet is a ridiculously simple library created mainly for managing your stateful telegram bots written with Telethon.
 
-.. invisible-content-till-nel
-.. _aioredis: https://github.com/aio-libs/aioredis
-.. _telethon: https://pypi.org/project/Telethon/
-.. _Alex: https://github.com/JrooTJunior
+.. invisible-content
+.. _aiogram: https://github.com/aiogram/aiogram
+
 
 
 ***************
@@ -373,8 +372,4 @@ Our small telegram `group <https://t.me/joinchat/B2cC_hknbKGm3_G8N9qifQ>`_
 Credits
 *******
 
-Finite-state machine was ported from cool BotAPI library 'aiogram', special thanks to Alex_
-
-You can donate to:
-- LonamiWebs for Telethon project: `paypal <http://paypal.me/lonamiwebs>`_
-- AIOGram project: `opencollective <https://opencollective.com/aiogram/organization/0/website>`_
+Finite-state machine was ported from cool BotAPI library aiogram_
