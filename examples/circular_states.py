@@ -1,6 +1,6 @@
 from garnet import Router, ctx, run
 from garnet.filters import text, State, group
-from garnet.storages import MemoryStorage
+from garnet.storages import DictStorage
 
 router = Router()
 
@@ -13,7 +13,7 @@ class States(group.Group):
 @router.message(text.commands("start", prefixes=".!/") & State.entry)
 async def response(event):
     await event.reply("Hi! Congrats, you're stuck now!")
-    await ctx.StateCtx.get().set_state(States.first)
+    await ctx.CageCtx.get().set_state(States.first)
 
 
 @router.message(State.exact(States))
@@ -26,12 +26,12 @@ async def for_x_states(event):
     except group.NoNext:
         nxt = cur_state.top
 
-    await ctx.StateCtx.get().set_state(nxt)
+    await ctx.CageCtx.get().set_state(nxt)
 
 
 async def main():
     main_router = Router().include(router)
-    await run(main_router, MemoryStorage())
+    await run(main_router, DictStorage())
 
 
 if __name__ == "__main__":

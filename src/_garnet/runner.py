@@ -1,5 +1,6 @@
 import functools
-from typing import Callable, NoReturn, Optional, TypedDict
+from os import getenv
+from typing import Any, Callable, Optional, TypedDict
 
 from _garnet.client import GarnetConfig, TelegramClient
 from _garnet.events.router import Router
@@ -8,35 +9,43 @@ from _garnet.storages.base import BaseStorage
 
 class RuntimeConfig(TypedDict):
     # todo add more config vars
-    session: Optional[str]
-    app_id: Optional[str]
-    app_hash: Optional[str]
-    bot_token: Optional[str]
+    session_dsn: str
+    app_id: str
+    app_hash: str
+    bot_token: str
+
+
+def strict_getenv(key: str, /) -> str:
+    if (val := getenv(key)) is None:
+        raise ValueError(f"No env. var. found for {key}. Please export it.")
+
+    return val
 
 
 def default_conf_maker() -> RuntimeConfig:
-    from os import getenv
-
     return RuntimeConfig(
-        bot_token=getenv("GARNET_BOT_TOKEN", getenv("BOT_TOKEN")),
-        app_id=getenv("APP_ID", getenv("API_ID")),
-        app_hash=getenv("APP_HASH", getenv("API_HASH")),
-        session=getenv("SESSION", "~garnet-default.session"),
+        bot_token=strict_getenv("BOT_TOKEN"),
+        app_id=strict_getenv("APP_ID",),
+        app_hash=strict_getenv("APP_HASH"),
+        session_dsn=strict_getenv("SESSION_DSN"),
     )
 
 
 async def run(
     router: Router,
-    storage: BaseStorage,
+    storage: BaseStorage[Any],
     bot: Optional[TelegramClient] = None,
     conf_maker: Callable[[], RuntimeConfig] = default_conf_maker,
     dont_wait_for_handler: bool = False,
-) -> NoReturn:
+) -> None:
     runtime_cfg = conf_maker()
 
     if bot is None:
+        if not isinstance(runtime_cfg["session_dsn"], str):
+            raise ValueError  # todo
+
         bot = TelegramClient(
-            session=runtime_cfg["session"],
+            session=runtime_cfg["session_dsn"],
             api_id=int(runtime_cfg["app_id"]),
             api_hash=runtime_cfg["app_hash"],
         )
@@ -56,7 +65,6 @@ async def run(
     finally:
         if bot_ctx_token is not None:
             bot.reset_current(bot_ctx_token)
-        await storage.save()
         await storage.close()
 
 

@@ -1,22 +1,20 @@
-class Var:
-    """
-    Set string object values of class attributes as their link names.
-    Pulled from https://github.com/uwinx/tamtam.py [modified]
-    """
+from typing import Generic, Optional, Type, TypeVar
 
-    __slots__ = "value", "prefix", "suffix"
+VT = TypeVar("VT")
+InstanceT = TypeVar("InstanceT")
 
-    def __init__(self, prefix: str = "", value=None, suffix: str = "") -> None:
+
+class Var(Generic[InstanceT, VT]):
+    __slots__ = ("value",)
+
+    def __init__(self, value: Optional[VT] = None) -> None:
         self.value = value
-        self.prefix = prefix
-        self.suffix = suffix
 
-    def __set_name__(self, owner, val) -> None:
-        if not self.value:
-            self.value = self.prefix + val + self.suffix
+    def __set_name__(self, owner: Type[InstanceT], val: VT) -> None:
+        if self.value is None:
+            self.value = val
 
-    def __get__(self, instance, owner) -> str:
+    def __get__(
+        self, instance: Optional[InstanceT], owner: Optional[Type[InstanceT]],
+    ) -> Optional[VT]:
         return self.value
-
-    def __str__(self) -> str:
-        return self.value.__str__()

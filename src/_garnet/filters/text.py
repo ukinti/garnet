@@ -1,23 +1,33 @@
 import functools
 import operator
 import re
-import typing
+from typing import Any, Callable, Iterable, Type, Union
 
 from _garnet.events.filter import Filter
+from _garnet.patched_events import NewMessage
 
 
-def _base_len_comparator(operator_, predicted_length):
+def _base_len_comparator(
+    operator_: Union[Callable[[int, int], bool], Callable[[int], bool]],
+    predicted_length: int,
+) -> Filter[NewMessage.Event]:
     if predicted_length is None:
-        return Filter(lambda update: operator_(len(update.raw_text or "")))
+        return Filter(
+            lambda update: operator_(len(update.raw_text or "")),
+            event_builder=NewMessage,
+        )
     else:
         return Filter(
             lambda update: operator_(
                 len(update.raw_text or ""), predicted_length
-            )
+            ),
+            event_builder=NewMessage,
         )
 
 
-def _return_false_on_error(no_param_func, exception, /) -> bool:
+def _return_false_on_error(
+    no_param_func: Callable[[], Any], exception: Type[BaseException], /,
+) -> bool:
     try:
         no_param_func()
         return True
@@ -32,14 +42,13 @@ def startswith(prefix: str, /) -> Filter:
     return Filter(
         lambda update: update.raw_text.startswith(prefix)
         if isinstance(update.raw_text, str)
-        else None
+        else None,
+        event_builder=NewMessage,
     )
 
 
 def commands(
-    *cmd: str,
-    prefixes: typing.Union[str, typing.Iterable[str]] = "/",
-    to_set: bool = True,
+    *cmd: str, prefixes: Union[str, Iterable[str]] = "/", to_set: bool = True,
 ) -> Filter:
     """
     Check if cmd Some.text::str is a command.
@@ -52,24 +61,30 @@ def commands(
         lambda update: isinstance(update.text, str)
         and any(update.text.startswith(prefix) for prefix in prefixes)
         and (update.text.split(maxsplit=1)[0][1:].split("@", maxsplit=1)[0])
-        in cmd
+        in cmd,
+        event_builder=NewMessage,
     )
 
 
-def match(expression: str, flags: int = 0, /) -> Filter:
+def match(expression: str, flags: int = 0, /) -> Filter[NewMessage.Event]:
     """
     Check if Some.raw_text::str does match a pattern.
     """
     rex = re.compile(expression, flags=flags)
 
-    return Filter(lambda update: bool(rex.match(update.raw_text)))
+    return Filter(
+        lambda update: bool(rex.match(update.raw_text)),
+        event_builder=NewMessage,
+    )
 
 
-def exact(text: str, /) -> Filter:
+def exact(text: str, /) -> Filter[NewMessage.Event]:
     """
     Check if Some.raw_text::str is equal to text.
     """
-    return Filter(lambda update: update.raw_text == text)
+    return Filter(
+        lambda update: update.raw_text == text, event_builder=NewMessage,
+    )
 
 
 def between(*texts: str, to_set: bool = True) -> Filter:
@@ -80,7 +95,9 @@ def between(*texts: str, to_set: bool = True) -> Filter:
     if to_set:
         texts = set(texts)
 
-    return Filter(lambda update: update.raw_text in texts)
+    return Filter(
+        lambda update: update.raw_text in texts, event_builder=NewMessage,
+    )
 
 
 def can_be_int(base: int = 10) -> Filter:
@@ -92,7 +109,8 @@ def can_be_int(base: int = 10) -> Filter:
     return Filter(
         lambda event: _return_false_on_error(
             functools.partial(func, event.raw_text), ValueError,
-        )
+        ),
+        event_builder=NewMessage,
     )
 
 
@@ -103,24 +121,25 @@ def can_be_float() -> Filter:
     return Filter(
         lambda event: _return_false_on_error(
             functools.partial(float, event.raw_text), ValueError,
-        )
+        ),
+        event_builder=NewMessage,
     )
 
 
 class _MessageLenMeta(type):
-    def __eq__(self, length: int) -> Filter:
+    def __eq__(self, length: int) -> Filter[NewMessage.Event]:
         return _base_len_comparator(operator.eq, length)
 
-    def __gt__(self, length: int) -> Filter:
+    def __gt__(self, length: int) -> Filter[NewMessage.Event]:
         return _base_len_comparator(operator.gt, length)
 
-    def __lt__(self, length: int) -> Filter:
+    def __lt__(self, length: int) -> Filter[NewMessage.Event]:
         return _base_len_comparator(operator.lt, length)
 
-    def __ge__(self, length: int) -> Filter:
+    def __ge__(self, length: int) -> Filter[NewMessage.Event]:
         return _base_len_comparator(operator.ge, length)
 
-    def __le__(self, length: int) -> Filter:
+    def __le__(self, length: int) -> Filter[NewMessage.Event]:
         return _base_len_comparator(operator.le, length)
 
 

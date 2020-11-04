@@ -1,52 +1,47 @@
-# Source: https://github.com/aiogram/aiogram
-# MODIFIED.
-import functools
 import json
 import pathlib
 import typing
 
 from _garnet.concurrency import to_thread
 
-from .memory import MemoryStorage
+from .dict import DictStorage, _UserStorageMetaData
+from .typedef import StorageDataT
 
 
-def _create_json_file(path: pathlib.Path):
-    """
-    Write initials to JSON file
-    """
+def _create_json_file(path: pathlib.Path) -> None:
     if not path.exists():
         with path.open("w", encoding="utf-8") as f:
             f.write("{}")
 
+    return None
 
-class JSONStorage(MemoryStorage):
+
+class JSONStorage(DictStorage[StorageDataT]):
     """
-    JSON File storage based on MemoryStorage
+    JSON File storage based on DictStorage
     """
 
     def __init__(self, path: typing.Union[pathlib.Path, str]):
-        """
-        Creates if not found, saves if process was closed properly.
-        Could be more reliable.
-        :param path: file path
-        """
         super().__init__()
-        self.path = pathlib.Path(path)
-
-    def _read(self):
-        _create_json_file(self.path)
-        with self.path.open("r", encoding="utf-8") as fp:
-            return json.load(fp,)
-
-    def _save(self):
-        with self.path.open("w", encoding="utf-8") as fp:
-            return json.dump(self.data, fp, ensure_ascii=False)
+        self._path = pathlib.Path(path)
 
     async def init(self) -> None:
-        data = await to_thread(functools.partial(self._read, self.path))
-        self.data = data
+        def _read() -> _UserStorageMetaData:
+            _create_json_file(self._path)
+            with self._path.open("r", encoding="utf-8") as fp:
+                return json.load(fp)
 
-    async def save(self) -> None:
-        if self.data:
-            await to_thread(functools.partial(self.save, self.path))
-        await super().close()
+        data = await to_thread(_read)
+        self._data = data
+
+        return await super().init()
+
+    async def close(self) -> None:
+        def _save() -> None:
+            with self._path.open("w", encoding="utf-8") as fp:
+                json.dump(self._data, fp, ensure_ascii=False)
+            return None
+
+        await to_thread(_save)
+
+        return await super().close()

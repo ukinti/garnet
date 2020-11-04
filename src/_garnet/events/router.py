@@ -9,6 +9,7 @@ from typing import (
     Reversible,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -17,8 +18,12 @@ from telethon.events import common
 
 import _garnet.patched_events as pe
 from _garnet.events.filter import Filter, ensure_filters
-from _garnet.events.fsm_context import FSMContext
-from _garnet.events.handler import EventHandler, ensure_handler
+from _garnet.events.handler import (
+    AsyncFunctionHandler,
+    EventHandler,
+    ensure_handler,
+)
+from _garnet.events.user_cage import KeyMakerFn, UserCage
 from _garnet.loggers import events
 from _garnet.vars import fsm as fsm_ctx
 from _garnet.vars import handler as h_ctx
@@ -27,10 +32,16 @@ from _garnet.vars import user_and_chat as uc_ctx
 if TYPE_CHECKING:
     from _garnet.client import TelegramClient
     from _garnet.storages.base import BaseStorage
+    from _garnet.storages.typedef import StorageDataT
 
 
-ET = Union[common.EventBuilder, Type[common.EventBuilder]]
+ET = TypeVar("ET", bound=common.EventBuilder)
 UnwrappedIntermediateT = Callable[[Type[EventHandler], common.EventCommon], Any]
+
+__ProxyT = TypeVar("__ProxyT")
+_EventHandlerGT = Union[
+    Type[EventHandler[__ProxyT]], AsyncFunctionHandler[__ProxyT],
+]
 
 
 async def check_filter(
@@ -67,12 +78,14 @@ class Router:
         "upper_filters",
         "_intermediates",
         "children",
+        "_cage_key_maker_f",
     )
 
     def __init__(
         self,
-        default_event: "Optional[ET]" = None,
-        *upper_filters: Filter[None],
+        default_event: Optional[ET] = None,
+        *upper_filters: Filter[Optional[ET]],
+        cage_key_maker: Optional[KeyMakerFn] = None,
     ):
         """
         :param default_event: Default event
@@ -80,10 +93,18 @@ class Router:
         when event reaches this router
         """
         self.event = default_event
-        self._handlers: List[Type[EventHandler]] = []
-        self.upper_filters = upper_filters
+        self._handlers: List[Type[EventHandler[ET]]] = []
+
+        if default_event is not None:
+            self.upper_filters = tuple(
+                ensure_filters(default_event, upper_filters)
+            )
+        else:
+            self.upper_filters = upper_filters
+
         self._intermediates: List[UnwrappedIntermediateT] = []
         self.children: "List[Router]" = []
+        self._cage_key_maker_f = cage_key_maker
 
     def add_use(self, intermediate: UnwrappedIntermediateT) -> None:
         """
@@ -93,7 +114,7 @@ class Router:
         """
         self._intermediates.append(intermediate)
 
-    def use(self):
+    def use(self) -> Callable[[UnwrappedIntermediateT], UnwrappedIntermediateT]:
         """
         Use `.use(...)` for adding router check layer
 
@@ -124,16 +145,14 @@ class Router:
         return self
 
     @property
-    def handlers(self) -> Generator[Type[EventHandler], None, None]:
+    def handlers(self) -> Generator[Type[EventHandler[ET]], None, None]:
         for handler in self._handlers:
             yield handler
         for child in self.children:
             yield from child.handlers
 
     @property
-    def intermediates(
-        self,
-    ) -> Generator[Type[UnwrappedIntermediateT], None, None]:
+    def intermediates(self,) -> Generator[UnwrappedIntermediateT, None, None]:
         for handler in self._intermediates:
             yield handler
         for child in self.children:
@@ -143,10 +162,10 @@ class Router:
     def _wrap_intermediates(
         cls,
         intermediates: Reversible[UnwrappedIntermediateT],
-        handler: Type[EventHandler],
+        handler: Type[EventHandler[ET]],
     ) -> Callable[[ET], Any]:
         @functools.wraps(handler)
-        def mpa(event) -> Any:
+        def mpa(event: ET) -> Any:
             return handler(event)
 
         for inter in reversed(intermediates):
@@ -163,20 +182,21 @@ class Router:
     async def _notify_handlers(
         self,
         built: EventBuilderDict,
-        storage: "BaseStorage",
+        storage: "BaseStorage[StorageDataT]",
         client: "TelegramClient",
     ) -> bool:
         """Shallow call."""
         for handler in self._handlers:
             if event := built[handler.__event_builder__]:
                 with uc_ctx.current_user_and_chat_ctx_manager(event):
-                    fsm_context = FSMContext(
+                    fsm_context = UserCage(
                         storage,
-                        chat=uc_ctx.ChatIDCtx.get(),
-                        user=uc_ctx.UserIDCtx.get(),
+                        uc_ctx.ChatIDCtx.get(),
+                        uc_ctx.UserIDCtx.get(),
+                        self._cage_key_maker_f,
                     )
                     event_token = event.set_current(event)
-                    fsm_token = fsm_ctx.StateCtx.set(fsm_context)
+                    fsm_token = fsm_ctx.CageCtx.set(fsm_context)
                     client_token = client.set_current(client)
                     handler_token = h_ctx.HandlerCtx.set(handler)
 
@@ -214,7 +234,7 @@ class Router:
 
                     finally:
                         event.reset_current(event_token)
-                        fsm_ctx.StateCtx.reset(fsm_token)
+                        fsm_ctx.CageCtx.reset(fsm_token)
                         client.reset_current(client_token)
                         h_ctx.HandlerCtx.reset(handler_token)
 
@@ -222,10 +242,11 @@ class Router:
 
     async def notify(
         self,
-        storage: "BaseStorage",
+        storage: "BaseStorage[StorageDataT]",
         built: EventBuilderDict,
         client: "TelegramClient",
     ) -> None:
+        """Notify router and its children about update."""
         if await self._notify_filters(built) and await self._notify_handlers(
             built, storage, client
         ):
@@ -235,46 +256,60 @@ class Router:
             return await router.notify(storage, built, client)
 
     # noinspection PyTypeChecker
-    def message(self, *filters: "Filter[ET]"):
+    def message(
+        self, *filters: "Filter[ET]",
+    ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for `garnet.events.NewMessage` event handlers."""
 
-        def decorator(f_or_class):
-            self.register(f_or_class, filters, event=pe.NewMessage)
+        def decorator(f_or_class: _EventHandlerGT[ET]) -> _EventHandlerGT[ET]:
+            f_or_class_to_reg = ensure_handler(f_or_class, pe.NewMessage)
+            self.register(f_or_class_to_reg, filters, event=pe.NewMessage)
             return f_or_class
 
         return decorator
 
     # noinspection PyTypeChecker
-    def callback_query(self, *filters: "Filter[ET]"):
+    def callback_query(
+        self, *filters: "Filter[ET]",
+    ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for `garnet.events.CallbackQuery` event handlers."""
 
-        def decorator(f_or_class):
-            self.register(f_or_class, filters, event=pe.CallbackQuery)
+        def decorator(f_or_class: _EventHandlerGT[ET]) -> _EventHandlerGT[ET]:
+            f_or_class_to_reg = ensure_handler(f_or_class, pe.CallbackQuery)
+            self.register(f_or_class_to_reg, filters, event=pe.CallbackQuery)
             return f_or_class
 
         return decorator
 
     # noinspection PyTypeChecker
-    def chat_action(self, *filters: "Filter[ET]"):
+    def chat_action(
+        self, *filters: "Filter[ET]",
+    ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for `garnet.events.ChatAction` event handlers."""
 
-        def decorator(f_or_class):
-            self.register(f_or_class, filters, event=pe.ChatAction)
+        def decorator(f_or_class: _EventHandlerGT[ET]) -> _EventHandlerGT[ET]:
+            f_or_class_to_reg = ensure_handler(f_or_class, pe.ChatAction)
+            self.register(f_or_class_to_reg, filters, event=pe.ChatAction)
             return f_or_class
 
         return decorator
 
     # noinspection PyTypeChecker
-    def message_edited(self, *filters: "Filter[ET]"):
+    def message_edited(
+        self, *filters: "Filter[ET]",
+    ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for `garnet.events.MessageEdited` event handlers."""
 
-        def decorator(f_or_class):
-            self.register(f_or_class, filters, event=pe.MessageEdited)
+        def decorator(f_or_class: _EventHandlerGT[ET]) -> _EventHandlerGT[ET]:
+            f_or_class_to_reg = ensure_handler(f_or_class, pe.MessageEdited)
+            self.register(f_or_class_to_reg, filters, event=pe.MessageEdited)
             return f_or_class
 
         return decorator
 
-    def default(self, *filters: "Filter[ET]"):
+    def default(
+        self, *filters: "Filter[ET]",
+    ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for router's default event event handlers."""
         if self.event is None or (
             isinstance(self.event, type)
@@ -283,11 +318,13 @@ class Router:
             raise ValueError(
                 "In order to use default event_builder declare it in "
                 "Router(...). "
-                f"Expected type {common.EventBuilder} got {type(self.event)!r}"
+                f"Expected type {common.EventBuilder} got {type(self.event)!s}"
             )
 
-        def decorator(f_or_class):
-            self.register(f_or_class, filters, event=self.event)
+        def decorator(f_or_class: _EventHandlerGT[ET]) -> _EventHandlerGT[ET]:
+            assert self.event is not None
+            f_or_class_to_reg = ensure_handler(f_or_class, self.event)
+            self.register(f_or_class_to_reg, filters, event=self.event)
             return f_or_class
 
         return decorator
@@ -297,19 +334,20 @@ class Router:
         event_builder: "Type[common.EventBuilder]",
         /,
         *filters: "Filter[ET]",
-    ):
+    ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for a specific event-aware event handlers."""
 
-        def decorator(f_or_class):
-            self.register(f_or_class, filters, event=event_builder)
+        def decorator(f_or_class: _EventHandlerGT[ET]) -> _EventHandlerGT[ET]:
+            f_or_class_to_reg = ensure_handler(f_or_class, event_builder)
+            self.register(f_or_class_to_reg, filters, event=event_builder)
             return f_or_class
 
         return decorator
 
     def register(
         self,
-        handler: "EventHandler[ET]",
-        filters: "Tuple[Filter, ...]",
+        handler: "Type[EventHandler[ET]]",
+        filters: "Tuple[Filter[ET], ...]",
         event: "Type[common.EventBuilder]",
     ) -> "Router":
         """

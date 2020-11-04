@@ -52,7 +52,7 @@ class Filter(Generic[ET]):
         self,
         function: Callable[[ET], FR],
         event_builder: Optional[Type[EventBuilder]] = None,
-    ):
+    ) -> None:
         """
         :param function: A single parameter function (Optional[EventType])
         that must return boolean (True/False) value
@@ -67,7 +67,7 @@ class Filter(Generic[ET]):
         ) or inspect.isawaitable(function)
         self.event_builder = event_builder
 
-    def __xor__(self, filter2: Filter) -> Filter:
+    def __xor__(self, filter2: Filter[ET]) -> Filter[ET]:
         """
         XOR test of two filters' results.
         Usage: `Filter(...) ^ Filter(...)`
@@ -88,7 +88,7 @@ class Filter(Generic[ET]):
 
         return binary_op(self, filter2, operator.xor)
 
-    def __and__(self, filter2: Filter) -> Filter:
+    def __and__(self, filter2: Filter[ET]) -> Filter[ET]:
         """
         AND test of two filters' results.
         Usage: `Filter(...) & Filter(...)`
@@ -99,7 +99,7 @@ class Filter(Generic[ET]):
 
         return binary_op(self, filter2, operator.and_)
 
-    def __or__(self, filter2: Filter) -> Filter:
+    def __or__(self, filter2: Filter[ET]) -> Filter[ET]:
         """
         OR test of two filters' results.
         Usage: `Filter(...) | Filter(...)`
@@ -110,7 +110,7 @@ class Filter(Generic[ET]):
 
         return binary_op(self, filter2, operator.or_)
 
-    def __invert__(self) -> Filter:
+    def __invert__(self) -> Filter[ET]:
         """
         INVERSION (actually, NEGATION) operation for a filter.
         Usage: `~Filter(...)`
@@ -145,7 +145,7 @@ def binary_op(
     filter1: Filter[ET],
     filter2: Filter[ET],
     operator_: Callable[[bool, bool], bool],
-) -> Filter:
+) -> Filter[ET]:
     """Merge two filter and apply `operator_` function."""
 
     if (not isinstance(filter1, Filter)) | (not isinstance(filter2, Filter)):
@@ -165,7 +165,7 @@ def binary_op(
 
     if filter1.is_awaitable and filter2.is_awaitable:
 
-        async def func(event):
+        async def func(event: ET) -> bool:
             return operator_(
                 await filter1.function(event), await filter2.function(event),
             )
@@ -176,17 +176,19 @@ def binary_op(
         async_func = filter1 if filter1.is_awaitable else filter2
         sync_func = filter2 if async_func == filter1 else filter1
 
-        async def func(event):
+        async def func(event: ET) -> bool:
             return operator_(
                 await async_func.function(event), sync_func.function(event)
             )
 
         return Filter(function=func, event_builder=common_event_builder)
 
-    def func(event):
+    def func(event: ET) -> bool:
         return operator_(filter1.function(event), filter2.function(event))
 
-    return Filter(function=func, event_builder=common_event_builder)
+    return Filter(
+        function=func, event_builder=common_event_builder,  # type: ignore
+    )
 
 
 def unary_op(filter1: Filter[ET], operator_: Callable[[bool], bool]) -> Filter:
@@ -194,21 +196,21 @@ def unary_op(filter1: Filter[ET], operator_: Callable[[bool], bool]) -> Filter:
 
     if filter1.is_awaitable:
 
-        async def func(event):
+        async def func(event: ET) -> bool:
             return operator_(await filter1.function(event))
 
-        return Filter(function=func, event_builder=filter1.event_builder)
+    else:
 
-    def func(event):
-        return operator_(filter1.function(event))
+        def func(event: ET) -> bool:
+            return operator_(filter1.function(event))
 
-    return Filter(function=func, event_builder=filter1.event_builder)
+    return Filter(function=func, event_builder=filter1.event_builder,)
 
 
 def ensure_filters(
     event_builder: Optional[Type[EventBuilder]],
     filters: Tuple[Union[Filter[ET], Callable[[ET], bool]], ...],
-) -> Generator[Filter, None, None]:
+) -> Generator[Filter[ET], None, None]:
     """
     Generator function propagates event builder to event-builder-naive filters
     """

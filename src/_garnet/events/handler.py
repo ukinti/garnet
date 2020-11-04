@@ -1,5 +1,14 @@
 import abc
-from typing import Any, Awaitable, Callable, Generic, Tuple, Type, TypeVar
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Generic,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from telethon.events.common import EventBuilder
 
@@ -30,7 +39,7 @@ class EventHandler(Generic[ET], abc.ABC):
 
     """
 
-    filters: Tuple[Filter, ...]
+    filters: Tuple[Filter[ET], ...]
 
     @property
     @abc.abstractmethod
@@ -49,7 +58,8 @@ class EventHandler(Generic[ET], abc.ABC):
 
 
 def ensure_handler(
-    callable_: AsyncFunctionHandler[ET], event_builder: "Type[EventBuilder]",
+    callable_: Union[AsyncFunctionHandler[ET], Type[EventHandler[ET]]],
+    event_builder: "Type[EventBuilder]",
 ) -> Type[EventHandler[ET]]:
     if isinstance(callable_, type) and issubclass(callable_, EventHandler):
         return callable_

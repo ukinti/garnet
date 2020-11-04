@@ -1,12 +1,12 @@
 import contextvars
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from _garnet.events.fsm_context import FSMContext
+    from _garnet.events.user_cage import UserCage
     from _garnet.filters.state import M
 
-StateCtx: "contextvars.ContextVar[FSMContext]" = contextvars.ContextVar(
-    "user_state"
+CageCtx: "contextvars.ContextVar[UserCage[Any]]" = contextvars.ContextVar(
+    "user_cage"
 )
 MCtx: "contextvars.ContextVar[Optional[M]]" = contextvars.ContextVar(
     "m", default=None,

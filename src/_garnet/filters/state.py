@@ -33,11 +33,11 @@ class NoTop(Exception):
 
 # region State filter
 async def any_state_except_none_func(_):
-    return await fsm.StateCtx.get().get_state() is not None
+    return await fsm.CageCtx.get().get_state() is not None
 
 
 async def no_state_but_none_func(_):
-    return await fsm.StateCtx.get().get_state() is None
+    return await fsm.CageCtx.get().get_state() is None
 
 
 _ilc_descriptor = type(
@@ -65,7 +65,7 @@ class _MetaCurrentState(type):
         elif isinstance(_s, type) and issubclass(_s, Group):
 
             async def _f(_):
-                current_state = await fsm.StateCtx.get().get_state()
+                current_state = await fsm.CageCtx.get().get_state()
 
                 for state in _s.all_state_objects:
                     if state.name == current_state:
@@ -77,7 +77,7 @@ class _MetaCurrentState(type):
         elif isinstance(_s, M):
 
             async def _f(_):
-                current_state = await fsm.StateCtx.get().get_state()
+                current_state = await fsm.CageCtx.get().get_state()
                 ok = current_state == _s.name
                 if ok:
                     fsm.MCtx.set(_s)
@@ -221,11 +221,7 @@ def is_reserved(name: str, /) -> bool:
 
 class _MetaStateGroup(type):
     def __new__(
-        mcs,
-        name: str,
-        bases: Tuple[Type[Any], ...],
-        namespace: Dict[str, Any],
-        **kwargs: Any,
+        mcs, name: str, bases: Tuple[Type[Any], ...], namespace: Dict[str, Any],
     ) -> "Type[Group]":
         cls = super(_MetaStateGroup, mcs).__new__(mcs, name, bases, namespace)
 
@@ -259,7 +255,7 @@ class _MetaStateGroup(type):
         cls.children = tuple(children)
         cls.states = tuple(states)
 
-        return cls
+        return cast(Type[Group], cls)
 
     @property
     def full_group_name(cls) -> str:
@@ -320,7 +316,7 @@ class _MetaStateGroup(type):
 
     def from_iter(
         cls,
-        iterable: "Union[_DummyGroupT, Iterable[_DummyGroupT, ...]]",
+        iterable: "Union[_DummyGroupT, Iterable[_DummyGroupT]]",
         main_group_name: str = "AnonGroup",
         _depth: int = 0,
         /,
@@ -367,7 +363,9 @@ class _MetaStateGroup(type):
                     f" not {type(sog).__name__}"
                 )
 
-        return _MetaStateGroup(main_group_name, (Group,), namespace,)
+        return _MetaStateGroup(  # type: ignore
+            main_group_name, (Group,), namespace,
+        )
 
 
 class Group(metaclass=_MetaStateGroup):

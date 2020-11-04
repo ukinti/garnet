@@ -1,309 +1,69 @@
-# Source: https://github.com/aiogram/aiogram
-import typing
+import abc
+from typing import Generic, Optional
 
-# Leak bucket
-KEY = "key"
+from .typedef import StorageDataT
 
 
-class BaseStorage:
-    """
-    You are able to save current user's state
-    and data for all steps in states-storage
-    """
+class BaseStorage(Generic[StorageDataT], abc.ABC):
+    @abc.abstractmethod
+    async def get_state(self, key: str) -> Optional[str]:
+        """Read the current state for {key} and return it as string."""
+        raise NotImplementedError
 
-    async def close(self):
+    @abc.abstractmethod
+    async def set_state(self, key: str, state: Optional[str]) -> None:
         """
-        You have to override this method and use when application shutdowns.
-        Perhaps you would like to save data and etc.
+        Overwrite existing state to the passed one.
 
-        :return:
+        (!) If None was passed as ``state``, then underlying state should
+        become ``None`` too and not any kind of string.
         """
         raise NotImplementedError
 
-    async def wait_closed(self):
+    @abc.abstractmethod
+    async def get_data(self, key: str) -> Optional[StorageDataT]:
         """
-        You have to override this method for all asynchronous storages (e.g., Redis).
+        Read the current data and return it as StorageDataT
 
-        :return:
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def check_address(
-        cls,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-    ) -> (typing.Union[str, int], typing.Union[str, int]):
-        """
-        In all storage's methods chat or user is always required.
-        If one of them is not provided, you have to set missing value based on the provided one.
-
-        This method performs the check described above.
-
-        :param chat:
-        :param user:
-        :return:
-        """
-        if chat is None and user is None:
-            raise ValueError(
-                "`user` or `chat` parameter is required but no one is provided!"
-            )
-
-        if user is None and chat is not None:
-            user = chat
-        elif user is not None and chat is None:
-            chat = user
-        return chat, user
-
-    async def get_state(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        default: typing.Optional[str] = None,
-    ) -> typing.Optional[str]:
-        """
-        Get current state of user in chat. Return `default` if no record is found.
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :param default:
-        :return:
+        (!) If there is a data, otherwise ``None`` should be returned
         """
         raise NotImplementedError
 
-    async def get_data(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        default: typing.Optional[typing.Dict] = None,
-    ) -> typing.Dict:
+    @abc.abstractmethod
+    async def set_data(self, key: str, data: Optional[StorageDataT]) -> None:
         """
-        Get state-data for user in chat. Return `default` if no data is provided in storage.
+        Overwrite existing data to a new passed one
 
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :param default:
-        :return:
+        (!) If None was passed as ``data``, then data should become ``None``
+        too, and not any kind of empty/uninitialized of STORAGE_DATA_T
         """
         raise NotImplementedError
 
-    async def set_state(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        state: typing.Optional[typing.AnyStr] = None,
-    ):
+    @abc.abstractmethod
+    async def update_data(self, key: str, data: StorageDataT) -> None:
         """
-        Set new state for user in chat
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :param state:
+        Merge passed data to an existing one.
         """
         raise NotImplementedError
 
-    async def set_data(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        data: typing.Dict = None,
-    ):
-        """
-        Set data for user in chat
+    # naively implemented basic, base member methods
+    async def reset_state(self, key: str) -> None:
+        await self.set_state(key=key, state=None)
 
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
+    async def reset_data(self, key: str) -> None:
+        await self.set_data(key=key, data=None)
 
-        :param chat:
-        :param user:
-        :param data:
-        """
-        raise NotImplementedError
+    async def reset(self, key: str) -> None:
+        """Reset both state and data."""
+        await self.reset_state(key=key)
+        await self.reset_data(key=key)
 
-    async def update_data(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        data: typing.Dict = None,
-        **kwargs,
-    ):
-        """
-        Update data for user in chat
-
-        You can use data parameter or|and kwargs.
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param data:
-        :param chat:
-        :param user:
-        :param kwargs:
-        :return:
-        """
-        raise NotImplementedError
-
-    async def reset_data(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-    ):
-        """
-        Reset data for user in chat.
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :return:
-        """
-        await self.set_data(chat=chat, user=user, data={})
-
-    async def reset_state(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        with_data: typing.Optional[bool] = True,
-    ):
-        """
-        Reset state for user in chat.
-        You may desire to use this method when finishing conversations.
-
-        Chat or user is always required. If one of this is not presented,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :param with_data:
-        :return:
-        """
-        chat, user = self.check_address(chat=chat, user=user)
-        await self.set_state(chat=chat, user=user, state=None)
-        if with_data:
-            await self.set_data(chat=chat, user=user, data={})
-
-    async def finish(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-    ):
-        """
-        Finish conversation for user in chat.
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :return:
-        """
-        await self.reset_state(chat=chat, user=user, with_data=True)
-
-    def has_bucket(self):
-        return False
-
-    async def get_bucket(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        default: typing.Optional[dict] = None,
-    ) -> typing.Dict:
-        """
-        Get bucket for user in chat. Return `default` if no data is provided in storage.
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :param default:
-        :return:
-        """
-        raise NotImplementedError
-
-    async def set_bucket(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        bucket: typing.Dict = None,
-    ):
-        """
-        Set bucket for user in chat
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :param bucket:
-        """
-        raise NotImplementedError
-
-    async def update_bucket(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-        bucket: typing.Dict = None,
-        **kwargs,
-    ):
-        """
-        Update bucket for user in chat
-
-        You can use bucket parameter or|and kwargs.
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param bucket:
-        :param chat:
-        :param user:
-        :param kwargs:
-        :return:
-        """
-        raise NotImplementedError
-
-    async def reset_bucket(
-        self,
-        *,
-        chat: typing.Union[str, int, None] = None,
-        user: typing.Union[str, int, None] = None,
-    ):
-        """
-        Reset bucket dor user in chat.
-
-        Chat or user is always required. If one of them is not provided,
-        you have to set missing value based on the provided one.
-
-        :param chat:
-        :param user:
-        :return:
-        """
-        await self.set_data(chat=chat, user=user, data={})
-
+    @abc.abstractmethod
     async def init(self) -> None:
+        """First call for storage during garnet runtime"""
         raise NotImplementedError
 
-    async def save(self) -> None:
+    @abc.abstractmethod
+    async def close(self) -> None:
+        """Latest call for storage during garnet runtime."""
         raise NotImplementedError

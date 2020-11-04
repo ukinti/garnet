@@ -31,7 +31,7 @@ Let's dive in
 
     from garnet import Router, events, ctx
     from garnet.filters import State, text, group
-    from garnet.storages import MemoryStorage
+    from garnet.storages import DictStorage
 
     router = Router(events.NewMessage)  # declare a router that will handle message event by default
     UserStates = group.Group.from_iter(["echo"])  # declare users states
@@ -40,7 +40,7 @@ Let's dive in
     @router.default(text.commands("start"), State.entry)
     async def entrypoint(event):
         await event.reply("You entered echo zone!\n/cancel to exit")
-        fsm = ctx.StateCtx.get()  # get FSMContext of current user
+        fsm = ctx.StateCtx.get()  # get UserCage of current user
         await fsm.set_state(UserStates.echo)
 
     # register handler for "/cancel" commands for users that have entered any state
@@ -57,7 +57,7 @@ Let's dive in
     if __name__ == "__main__":
         import asyncio
         from garnet import run
-        asyncio.run(run(router, MemoryStorage()))
+        asyncio.run(run(router, DictStorage()))
 
 
 ************
@@ -331,7 +331,7 @@ Users states
 it's set in ``State`` filters
 
 
-``StateCtx`` points to ``garnet.event::FSMContext``
+``StateCtx`` points to ``garnet.event::UserCage``
 
 
 User and chat IDs
@@ -366,10 +366,3 @@ Contacts/Community
 You can find me on telegram by `@martin_winks <https://telegram.me/martin_winks>`_
 
 Our small telegram `group <https://t.me/joinchat/B2cC_hknbKGm3_G8N9qifQ>`_
-
-
-*******
-Credits
-*******
-
-Finite-state machine was ported from cool BotAPI library aiogram_
