@@ -11,10 +11,15 @@ from _garnet.helpers import ctx
 from _garnet.loggers import events
 
 
-class TelegramClient(_TelethonTelegramClient, ctx.ContextInstanceMixin):
+class TelegramClient(
+    _TelethonTelegramClient,  # type: ignore
+    ctx.ContextInstanceMixin["TelegramClient"],
+):
     __garnet_config__: "GarnetConfig"
 
-    async def _dispatch_update(self, update, others, channel_id, pts_date):
+    async def _dispatch_update(  # type: ignore
+        self, update, others, channel_id, pts_date
+    ):
         if not self._entity_cache.ensure_cached(update):
             if self._state_cache.update(update, check_only=True):
                 try:

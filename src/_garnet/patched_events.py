@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, TypeVar
 
 from telethon.events.album import Album
 from telethon.events.callbackquery import CallbackQuery
@@ -12,9 +12,11 @@ from telethon.events.userupdate import UserUpdate
 
 from _garnet.helpers import ctx as _ctx
 
+InstanceT = TypeVar("InstanceT")
 
-def patch_event_ctx():
-    def ctx_proxy(cls: Type) -> Type:
+
+def patch_event_ctx() -> None:
+    def ctx_proxy(cls: Type[InstanceT]) -> Type[InstanceT]:
         return type(cls.__name__, (cls, _ctx.ContextInstanceMixin), {})
 
     Album.Event = ctx_proxy(Album.Event)

@@ -13,6 +13,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 from telethon.events.common import EventBuilder
@@ -120,7 +121,7 @@ class Filter(Generic[ET]):
 
         return unary_op(self, operator.not_)
 
-    async def call(self, e: ET, /) -> FR:
+    async def call(self, e: ET, /) -> bool:
         """
         Call functor with type contracted parameter.
         If the initial function is async, call result will be awaited
@@ -128,11 +129,13 @@ class Filter(Generic[ET]):
         :param e: Some data
         :return:
         """
-        fn = functools.partial(self.function, e)
+        fn = cast(Callable[[], FR], functools.partial(self.function, e))
 
         if self.is_awaitable:
+            fn = cast(Callable[[], Awaitable[bool]], fn)
             return await fn()
         else:
+            fn = cast(Callable[[], bool], fn)
             return await to_thread(fn)
 
     @property
@@ -163,46 +166,31 @@ def binary_op(
 
     common_event_builder = filter1.event_builder
 
-    if filter1.is_awaitable and filter2.is_awaitable:
+    async def func(event: ET) -> bool:
+        return operator_(await filter1.call(event), await filter2.call(event),)
 
-        async def func(event: ET) -> bool:
-            return operator_(
-                await filter1.function(event), await filter2.function(event),
-            )
-
-        return Filter(function=func, event_builder=common_event_builder)
-
-    elif filter1.is_awaitable ^ filter2.is_awaitable:
-        async_func = filter1 if filter1.is_awaitable else filter2
-        sync_func = filter2 if async_func == filter1 else filter1
-
-        async def func(event: ET) -> bool:
-            return operator_(
-                await async_func.function(event), sync_func.function(event)
-            )
-
-        return Filter(function=func, event_builder=common_event_builder)
-
-    def func(event: ET) -> bool:
-        return operator_(filter1.function(event), filter2.function(event))
-
-    return Filter(
-        function=func, event_builder=common_event_builder,  # type: ignore
+    func.__name__ = (
+        f"Merged({filter1.function.__name__}+{filter2.function.__name__}"
     )
 
+    # noinspection PyUnreachableCode
+    if __debug__:
+        func.__doc__ = (
+            f"Merged:\nA: {filter1.function.__doc__}"
+            f"\nB: {filter2.function.__name__}"
+        )
 
-def unary_op(filter1: Filter[ET], operator_: Callable[[bool], bool]) -> Filter:
+    return Filter(function=func, event_builder=common_event_builder)
+
+
+def unary_op(
+    filter1: Filter[ET], operator_: Callable[[bool], bool],
+) -> Filter[ET]:
     """Create new filter from the old one."""
 
-    if filter1.is_awaitable:
-
-        async def func(event: ET) -> bool:
-            return operator_(await filter1.function(event))
-
-    else:
-
-        def func(event: ET) -> bool:
-            return operator_(filter1.function(event))
+    @functools.wraps(filter1.function)
+    async def func(event: ET) -> bool:
+        return operator_(await filter1.call(event))
 
     return Filter(function=func, event_builder=filter1.event_builder,)
 

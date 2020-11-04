@@ -1,6 +1,6 @@
 import json
 import pathlib
-import typing
+from typing import Dict, Union, cast
 
 from _garnet.concurrency import to_thread
 
@@ -21,15 +21,15 @@ class JSONStorage(DictStorage[StorageDataT]):
     JSON File storage based on DictStorage
     """
 
-    def __init__(self, path: typing.Union[pathlib.Path, str]):
+    def __init__(self, path: Union[pathlib.Path, str]):
         super().__init__()
         self._path = pathlib.Path(path)
 
     async def init(self) -> None:
-        def _read() -> _UserStorageMetaData:
+        def _read() -> Dict[str, _UserStorageMetaData]:
             _create_json_file(self._path)
             with self._path.open("r", encoding="utf-8") as fp:
-                return json.load(fp)
+                return cast(Dict[str, _UserStorageMetaData], json.load(fp))
 
         data = await to_thread(_read)
         self._data = data
