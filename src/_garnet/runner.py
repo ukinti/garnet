@@ -38,9 +38,9 @@ async def run(
     conf_maker: Callable[[], RuntimeConfig] = default_conf_maker,
     dont_wait_for_handler: bool = False,
 ) -> None:
-    runtime_cfg = conf_maker()
-
     if bot is None:
+        runtime_cfg = conf_maker()
+
         if not isinstance(runtime_cfg["session_dsn"], str):
             raise ValueError  # todo
 
@@ -60,7 +60,9 @@ async def run(
     try:
         await storage.init()
         bot.set_current(bot)
-        await bot.start(bot_token=runtime_cfg["bot_token"],)
+        if not bot.is_connected():
+            runtime_cfg = conf_maker()
+            await bot.start(bot_token=runtime_cfg["bot_token"],)
         await bot.run_until_disconnected()
     finally:
         if bot_ctx_token is not None:

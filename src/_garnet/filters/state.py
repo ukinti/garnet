@@ -255,7 +255,7 @@ class _MetaStateGroup(type):
         cls.children = tuple(children)
         cls.states = tuple(states)
 
-        return cast(Type[Group], cls)
+        return cast("Type[Group]", cls)
 
     @property
     def full_group_name(cls) -> str:
