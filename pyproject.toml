@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telegram-garnet"
-version = "1.0.0"
+version = "0.5.0"
 description = "garnet - cool add-on for Telethon"
 authors = ["Martin Winks <cat@snejugal.ru>"]
 readme = 'readme.rst'
