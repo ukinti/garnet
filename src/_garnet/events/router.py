@@ -216,7 +216,7 @@ class Router:
                                     f"Handler({handler!r}) did not "
                                     f"passed relevance test at {hf!r}"
                                 )
-                                continue
+                                break
                         else:
                             events.debug(
                                 f"Executing handler({handler!r}) after it "

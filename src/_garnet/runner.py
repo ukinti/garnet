@@ -59,7 +59,7 @@ async def run(
 
     try:
         await storage.init()
-        bot.set_current(bot)
+        bot_ctx_token = bot.set_current(bot)
         if not bot.is_connected():
             runtime_cfg = conf_maker()
             await bot.start(bot_token=runtime_cfg["bot_token"],)
