@@ -211,15 +211,22 @@ class Router:
 
                     try:
                         for hf in handler.filters:
-                            if await check_filter(built, hf):
+                            if not await check_filter(built, hf):
                                 events.debug(
-                                    f"Executing handler({handler!r}) after it "
-                                    f"passed relevance test"
+                                    f"Handler({handler!r}) did not "
+                                    f"passed relevance test at {hf!r}"
                                 )
-                                await self._wrap_intermediates(
-                                    self._intermediates, handler,
-                                )(event)
-                                return True
+                                continue
+                        else:
+                            events.debug(
+                                f"Executing handler({handler!r}) after it "
+                                f"passed relevance test"
+                            )
+
+                            await self._wrap_intermediates(
+                                self._intermediates, handler,
+                            )(event)
+                            return True
 
                     except pe.StopPropagation:
                         events.debug(
