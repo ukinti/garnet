@@ -1,3 +1,4 @@
+from _garnet.events.router import Router
 from _garnet.events.user_cage import UserCage
 from _garnet.patched_events import (
     Album,
@@ -26,4 +27,5 @@ __all__ = (
     "StopPropagation",
     "SkipHandler",
     "UserCage",
+    "Router",
 )

@@ -27,38 +27,36 @@ Let's dive in
 
 .. code:: python
 
-    # export BOT_TOKEN, APP_ID, APP_HASH env vars.
-
-    from garnet import Router, events, ctx
+    # export BOT_TOKEN, APP_ID, APP_HASH, SESSION_DSN env vars.
+    from garnet import ctx
+    from garnet.events import Router
     from garnet.filters import State, text, group
     from garnet.storages import DictStorage
 
-    router = Router(events.NewMessage)  # declare a router that will handle message event by default
+    router = Router()
     UserStates = group.Group.from_iter(["echo"])  # declare users states
 
     # register handler for "/start" commands for users with none yet set state
-    @router.default(text.commands("start"), State.entry)
+    @router.message(text.commands("start"), State.entry)
     async def entrypoint(event):
         await event.reply("You entered echo zone!\n/cancel to exit")
-        fsm = ctx.StateCtx.get()  # get UserCage of current user
+        fsm = ctx.CageCtx.get()
         await fsm.set_state(UserStates.echo)
 
     # register handler for "/cancel" commands for users that have entered any state
-    @router.default(text.commands("cancel"), State.any)
+    @router.message(text.commands("cancel"), State.any)
     async def cancel(event):
         await event.reply("Cancelled :)\n/start to restart")
-        await ctx.StateCtx.get().set_state(None)
+        await ctx.CageCtx.get().set_state(None)
 
     # handle any message from users with state=UserState.echo
-    @router.default(State.exact(UserState.echo))
+    @router.message(State.exact(UserStates.echo))
     async def echo(event):
-        await event.reply(event)
+        await event.reply(event.text)
 
     if __name__ == "__main__":
-        import asyncio
-        from garnet import run
-        asyncio.run(run(router, DictStorage()))
-
+        from garnet.runner import run, launch
+        launch(run(router, DictStorage()), "my-example-app")
 
 ************
 Key features
@@ -241,6 +239,58 @@ but not backwards as someone could expect with ``Users.Pet.ask_name.prev`` (will
 Nested group members do not know anything about upper members, but they have "owners" which have access to their parent groups and
 in order to access parent of owner of ``x = Users.Pet.ask_name``, we would use ``x.owner``
 
+Callback query (QueryBaker)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Operations on callback queries. Baker is a `callback_data` string generator/parser/validator. ``garnet.ctx::Query`` has
+context value which is set after every successful validation.
+
+Import
+""""""
+
+``from garnet.filters import QueryBaker``
+
+Little journey
+""""""""""""""
+
+- ``(prefix:str, /, *args:str, [ignore:Iterable[QItem]=(),][sep:str="\n",][maxlen:int=64])`` initializer function, if you want to have custom types in QueryDict
+- ``.filter(extend_ignore:Iterable[str]=(), /, **config)`` will make sure user given callback data is valid by given config.
+- ``.get_checked(**non_ignored:Any)`` will return a string based on passed passed args
+
+Usage
+"""""
+
+.. code:: python
+
+    from garnet.filters import QueryBaker
+
+    qb = QueryBaker(
+        "v",  # set v string as identity(prefix) for our baker
+        ("id", uuid.UUID),  # make uuid.UUID a factory for id arg
+        "act",
+        ignore=("id",),  # mark id arg as `optional`
+        sep=":",  # set a separator for arg values, better not change
+        maxlen=64,  # get_checked will check the length of generated callback and tell you if it's more than maxlen
+    )
+    # create v:{id}:{act} pattern
+
+    qb.filter(act="apply")
+    # will be a filter to match queries like "v:(.*):apply"
+
+    qb.get_checked(id="51b3f442-a9f6-4dcc-918e-1f08b1189386", act="clear")
+    # will produce a "safe" string pattern v:51b3f442-a9f6-4dcc-918e-1f08b1189386:clear
+
+    # You'll use
+    # .get_checked
+    Button.inline()
+
+Note
+""""
+
+Don't use separator string inside your arg values.
+
+To reuse validated data from filter, use `Query (validated dict)`_
+
 Routers
 =======
 
@@ -348,6 +398,14 @@ Handler
 
 ``HandlerCtx`` points to currently executing handler.
 
+Query (validated dict)
+----------------------
+
+Data that is stored in Dict[str(arg name), T(arg type from arg-factory(arg-str)->T)]
+
+``from garnet.ctx import Query``
+
+
 Note
 ----
 
@@ -359,10 +417,34 @@ postfix.
 
 Try to use context variables everywhere not depending on other mechanisms, because they work as you want.
 
-*******************
-Contacts/Community
-*******************
+******************
+🦾 Hacking garnet
+******************
 
-You can find me on telegram by `@martin_winks <https://telegram.me/martin_winks>`_
+Garnet consists of two interfaces `_garnet` and `garnet`, `garnet` is a "public" interface that should have somewhat stable interfaces
+and `_garnet` which is `internal` and considered as `non-public`
 
-Our small telegram `group <https://t.me/joinchat/B2cC_hknbKGm3_G8N9qifQ>`_
+Install and get started
+=======================
+
+::
+
+    git clone git@github.com:ukinti/garnet.git garnet
+    poetry install --dev
+    poetry shell
+
+
+Applying code-style
+===================
+
+::
+
+    # simply
+    make lint
+
+
+*********************
+💬 Contacts/Community
+*********************
+
+Join our small `group <https://t.me/tg_garnet>`_

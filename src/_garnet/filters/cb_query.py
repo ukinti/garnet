@@ -32,34 +32,31 @@ class QueryBaker(Generic[ResultT]):
     Example ::
 
         >>> from garnet.filters import QueryBaker
-        >>> qb = QueryBaker("arg", "arg1", ("not-checked-arg"), "sep", 5)
-        >>>
-        >>> check_completed_well = False
-        >>>     try:
-        ...         qb.get_checked("a" * 6)  # too long, out limit set to 5
-        ...     except ValueError:
-        ...         check_completed_well = True
-        ...
-        >>> assert check_completed_well
+        >>> qb = QueryBaker("user", "action", ignore=("user",))
+        >>> qb.filter(action=)
     """
 
-    __slots__ = ("typed_args", "sep", "maxlen", "ignored")
+    __slots__ = ("typed_args", "sep", "maxlen", "ignore", "prefix")
 
     def __init__(
         self,
+        prefix: str,
+        /,
         *args_with_factories: Iterable[Union[str, QItemT]],
-        ignored: Iterable[str] = (),
+        ignore: Iterable[str] = (),
         sep: str = ":",
         maxlen: int = 64,
     ) -> None:
         """
+        :param prefix: unique prefix for baker
         :param args_with_factories: argument names with their factories
-        :param ignored: ignored args are converted but not checked for filter
+        :param ignore: ignored args are converted but not checked for filter
         :param sep: postback separator
         :param maxlen: max length for postback, telegram default is 64
         """
+        self.prefix = prefix
         self.typed_args: List[QItemT] = []
-        self.ignored: FrozenSet[str] = frozenset(ignored)
+        self.ignore: Tuple[str] = tuple(ignore)
         self.sep = sep
         self.maxlen = maxlen
 
@@ -78,7 +75,14 @@ class QueryBaker(Generic[ResultT]):
 
     def get_checked(self, **kwargs: str):
         """Get checked postback string (respecting maxlen)."""
-        postback = self.sep.join(kwargs.pop(key) for key, _ in self.typed_args)
+        try:
+            postback = self.sep.join(
+                kwargs.pop(key) for key, _ in self.typed_args
+            )
+        except KeyError as ctx:
+            raise KeyError(
+                f"get_checked call is missing key {ctx.args} " f"from {self!r}"
+            ) from None
 
         if len(postback) >= self.maxlen:
             raise ValueError(
@@ -87,14 +91,20 @@ class QueryBaker(Generic[ResultT]):
 
         return postback
 
-    def _get_filter(self, test_values: Dict[str, Any], /):
+    def _get_filter(
+        self, test_values: Dict[str, Any], ignore: FrozenSet[str], /,
+    ):
         async def anonymous(event: ET) -> bool:
             """Fake anonymous function from QueryBaker."""
-            postback = event.data.decode()
-            converted_data = self.parse(postback)
+            postback: str = event.data.decode()
+            prefix, data = postback.split(self.sep, maxsplit=1)
+            if prefix != self.prefix:
+                return False
+
+            converted_data = self.parse(data)
 
             for arg, factor in self.typed_args:
-                if arg in self.ignored:
+                if arg in ignore:
                     continue
                 if converted_data[arg] != test_values[arg]:
                     break
@@ -107,23 +117,23 @@ class QueryBaker(Generic[ResultT]):
         return anonymous
 
     def filter(
-        self, ignore: Iterable[str] = (), /, **kwargs: str,
+        self, ignore: Iterable[str] = (), /, **non_ignored: str,
     ) -> Filter[ET]:
         """
         Get Filter instance.
 
         :param ignore: arguments to ignore (will extend ignore set)
-        :param kwargs: arguments to check `.filter(some=test_val)`
+        :param non_ignored: arguments to check `.filter(some=test_val)`
         """
-        ignored = frozenset((*ignore, *self.ignored))
+        ignore = frozenset((*ignore, *self.ignore))
 
         for arg, _ in self.typed_args:
-            if arg not in ignored and arg not in kwargs:
+            if arg not in ignore and arg not in non_ignored:
                 raise ValueError(
                     f"{arg} is declared as *required* but not passed to filter."
                 )
 
-        return Filter(self._get_filter(kwargs))
+        return Filter(self._get_filter(non_ignored, ignore))
 
     def parse(self, cb_data: str) -> ResultT:
         """Parse postback sent by user (actually, by telegram)."""
@@ -135,3 +145,6 @@ class QueryBaker(Generic[ResultT]):
             res[name] = factory(value)
 
         return res
+
+    def __repr__(self) -> str:
+        return f"Query(prefix='{self.prefix}') at {hex(id(self))}"

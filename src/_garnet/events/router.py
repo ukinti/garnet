@@ -1,4 +1,5 @@
 import functools
+from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -34,7 +35,6 @@ if TYPE_CHECKING:
     from _garnet.storages.base import BaseStorage
     from _garnet.storages.typedef import StorageDataT
 
-
 ET = TypeVar("ET", bound=common.EventBuilder)
 UnwrappedIntermediateT = Callable[[Type[EventHandler], common.EventCommon], Any]
 
@@ -45,14 +45,13 @@ _EventHandlerGT = Union[
 
 
 async def check_filter(
-    built: EventBuilderDict, filter_: Filter[Optional[ET]],
+    built: EventBuilderDict, filter_: Filter[Optional[ET]], /,
 ) -> bool:
     if event := built[filter_.event_builder]:
         event_token = event.set_current(event)
 
         try:
-            if await filter_.call(event) is not True:
-                return False
+            return await filter_.call(event)
         finally:
             event.reset_current(event_token)
 
@@ -132,7 +131,8 @@ class Router:
 
         return decorator
 
-    def include(self, router: "Router") -> "Router":
+    def include(self, router: "Router", /) -> "Router":
+        """Include router in `Self` and return `Self`"""
         if self is router:
             raise ValueError(f"Router({router!r}) cannot include it to itself.")
 
@@ -146,13 +146,15 @@ class Router:
 
     @property
     def handlers(self) -> Generator[Type[EventHandler[ET]], None, None]:
+        """Deep traverse of inner handlers."""
         for handler in self._handlers:
             yield handler
         for child in self.children:
             yield from child.handlers
 
     @property
-    def intermediates(self,) -> Generator[UnwrappedIntermediateT, None, None]:
+    def intermediates(self) -> Generator[UnwrappedIntermediateT, None, None]:
+        """Deep traverse of inner intermediates."""
         for handler in self._intermediates:
             yield handler
         for child in self.children:
@@ -179,50 +181,60 @@ class Router:
                 return False
         return True
 
+    @contextmanager
+    def _contexvars_context(
+        self,
+        storage: "BaseStorage[StorageDataT]",
+        event: ET,
+        client: "TelegramClient",
+        /,
+    ):
+        with uc_ctx.current_user_and_chat_ctx_manager(event):
+            fsm_context = UserCage(
+                storage,
+                uc_ctx.ChatIDCtx.get(),
+                uc_ctx.UserIDCtx.get(),
+                self._cage_key_maker_f,
+            )
+            event_token = event.set_current(event)
+            fsm_token = fsm_ctx.CageCtx.set(fsm_context)
+            client_token = client.set_current(client)
+        try:
+            yield
+        finally:
+            event.reset_current(event_token)
+            fsm_ctx.CageCtx.reset(fsm_token)
+            client.reset_current(client_token)
+
     async def _notify_handlers(
         self,
         built: EventBuilderDict,
         storage: "BaseStorage[StorageDataT]",
         client: "TelegramClient",
+        /,
     ) -> bool:
         """Shallow call."""
         for handler in self._handlers:
             if event := built[handler.__event_builder__]:
-                with uc_ctx.current_user_and_chat_ctx_manager(event):
-                    fsm_context = UserCage(
-                        storage,
-                        uc_ctx.ChatIDCtx.get(),
-                        uc_ctx.UserIDCtx.get(),
-                        self._cage_key_maker_f,
+                with self._contexvars_context(
+                    storage, event, client,
+                ):
+                    events.debug(
+                        "Current context configuration: {"
+                        f"CHAT_ID={uc_ctx.ChatIDCtx.get()},"
+                        f"USER_ID={uc_ctx.UserIDCtx.get()},"
+                        "}"
                     )
-                    event_token = event.set_current(event)
-                    fsm_token = fsm_ctx.CageCtx.set(fsm_context)
-                    client_token = client.set_current(client)
-                    handler_token = h_ctx.HandlerCtx.set(handler)
 
-                    # noinspection PyUnreachableCode
-                    if __debug__:
-                        events.debug(
-                            "Current context configuration: {"
-                            f"CHAT_ID={uc_ctx.ChatIDCtx.get()},"
-                            f"USER_ID={uc_ctx.UserIDCtx.get()},"
-                            "}"
-                        )
-
+                    handler_token = None
                     try:
-                        for hf in handler.filters:
-                            if not await check_filter(built, hf):
-                                events.debug(
-                                    f"Handler({handler!r}) did not "
-                                    f"passed relevance test at {hf!r}"
-                                )
-                                break
-                        else:
-                            events.debug(
-                                f"Executing handler({handler!r}) after it "
-                                f"passed relevance test"
-                            )
+                        handler_token = h_ctx.HandlerCtx.set(handler)
 
+                        for hf in handler.filters:
+                            if await check_filter(built, hf):
+                                continue
+                            break
+                        else:
                             await self._wrap_intermediates(
                                 self._intermediates, handler,
                             )(event)
@@ -240,10 +252,8 @@ class Router:
                         continue
 
                     finally:
-                        event.reset_current(event_token)
-                        fsm_ctx.CageCtx.reset(fsm_token)
-                        client.reset_current(client_token)
-                        h_ctx.HandlerCtx.reset(handler_token)
+                        if handler_token:
+                            h_ctx.HandlerCtx.reset(handler_token)
 
         return False
 
@@ -252,6 +262,7 @@ class Router:
         storage: "BaseStorage[StorageDataT]",
         built: EventBuilderDict,
         client: "TelegramClient",
+        /,
     ) -> None:
         """Notify router and its children about update."""
         if await self._notify_filters(built) and await self._notify_handlers(

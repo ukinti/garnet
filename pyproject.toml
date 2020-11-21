@@ -32,6 +32,7 @@ isort = "^5.5.2"
 pytest = "^6.1.2"
 PySocks = "^1.7.1"
 mypy = "^0.790"
+python-dotenv = "^0.15.0"
 
 [tool.poetry.extras]
 redis = ["aioredis"]

@@ -35,7 +35,7 @@ class EventHandler(Generic[ET], abc.ABC):
 
         async def handle(self) -> None:
             rooted = sqrt_f(float(self.e.raw_text))
-            self.e.reply(f"{:.6f}")
+            await self.e.reply(f"{:.6f}")
 
     """
 
