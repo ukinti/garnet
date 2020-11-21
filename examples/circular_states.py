@@ -1,6 +1,7 @@
-from garnet import Router, ctx, run
+from garnet import ctx
 from garnet.filters import text, State, group
 from garnet.storages import DictStorage
+from garnet.events import Router
 
 router = Router()
 
@@ -30,10 +31,12 @@ async def for_x_states(event):
 
 
 async def main():
+    from garnet.runner import run
+
     main_router = Router().include(router)
     await run(main_router, DictStorage())
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    from garnet.runner import launch
+    launch(main(), "circular-states-app")
