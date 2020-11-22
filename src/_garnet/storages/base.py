@@ -1,10 +1,17 @@
 import abc
-from typing import Generic, Optional
+from typing import Callable, Generic, Optional
 
 from .typedef import StorageDataT
 
 
 class BaseStorage(Generic[StorageDataT], abc.ABC):
+    __slots__ = ("_data_data_factory",)
+
+    def __init__(
+        self, data_factory: Callable[[], StorageDataT],
+    ):
+        self._data_data_factory = data_factory
+
     @abc.abstractmethod
     async def get_state(self, key: str) -> Optional[str]:
         """Read the current state for {key} and return it as string."""
@@ -22,35 +29,31 @@ class BaseStorage(Generic[StorageDataT], abc.ABC):
 
     @abc.abstractmethod
     async def get_data(self, key: str) -> Optional[StorageDataT]:
-        """
-        Read the current data and return it as StorageDataT
-
-        (!) If there is a data, otherwise ``None`` should be returned
-        """
+        """Read the current data and return it as StorageDataT."""
         raise NotImplementedError
 
     @abc.abstractmethod
     async def set_data(self, key: str, data: Optional[StorageDataT]) -> None:
         """
-        Overwrite existing data to a new passed one
+        Overwrite existing data to a new passed one.
 
-        (!) If None was passed as ``data``, then data should become ``None``
-        too, and not any kind of empty/uninitialized of STORAGE_DATA_T
+        (!) If None was passed as ``data``, then data should become result of
+        `storage._data_data_factory` and never None
         """
         raise NotImplementedError
 
     @abc.abstractmethod
     async def update_data(self, key: str, data: StorageDataT) -> None:
-        """
-        Merge passed data to an existing one.
-        """
+        """Merge passed data to an existing one."""
         raise NotImplementedError
 
     # naively implemented basic, base member methods
     async def reset_state(self, key: str) -> None:
+        """Cause state reset."""
         await self.set_state(key=key, state=None)
 
     async def reset_data(self, key: str) -> None:
+        """Cause data reset."""
         await self.set_data(key=key, data=None)
 
     async def reset(self, key: str) -> None:

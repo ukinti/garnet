@@ -5,7 +5,6 @@ from typing import Dict, Union, cast
 from _garnet.concurrency import to_thread
 
 from .dict import DictStorage, _UserStorageMetaData
-from .typedef import StorageDataT
 
 
 def _create_json_file(path: pathlib.Path) -> None:
@@ -16,7 +15,7 @@ def _create_json_file(path: pathlib.Path) -> None:
     return None
 
 
-class JSONStorage(DictStorage[StorageDataT]):
+class JSONStorage(DictStorage):
     """
     JSON File storage based on DictStorage
     """

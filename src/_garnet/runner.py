@@ -43,6 +43,17 @@ async def run(
     dont_wait_for_handler: bool = False,
     print_: Optional[Callable[..., None]] = functools.partial(print, sep="\n"),
 ) -> NoReturn:
+    """
+    Run a bot.
+
+    Tweaking:
+        - if parameter ``bot`` was passed ``conf_maker will`` be ignored
+        - storage is required parameter
+        - ``dont_wait_for_handler`` if True router will be notified about event
+        sequentially, otherwise will schedule a task to an event loop
+        immediately and wait to the next bunch. It also syncs with
+        TelegramClient's sequential_updates flag
+    """
     if bot is None:
         runtime_cfg = conf_maker()
 
@@ -65,11 +76,12 @@ async def run(
             session_dsn = session_dsn[:4] + ("*" * (len(session_dsn) - 4))
 
             print_(
+                "=" * 16,
                 "🔧 Using config(",
                 f"    {app_id=},",
                 f"    {app_hash=},",
                 f"    {bot_token=},",
-                f"    {session_dsn=}"
+                f"    {session_dsn=},",
                 ")",
             )
 
@@ -77,6 +89,13 @@ async def run(
         dont_wait_for_handler=dont_wait_for_handler,
         dispatch_hook=functools.partial(router.notify, storage),
     )
+
+    if dont_wait_for_handler:
+        bot._updates_queue = set()
+        bot._dispatching_updates_queue = None
+    else:
+        bot._updates_queue = asyncio.Queue()
+        bot._dispatching_updates_queue = asyncio.Event()
 
     if callable(print_):
         print_(f"☄️ Propagate events chaotically: {dont_wait_for_handler}",)
@@ -97,14 +116,34 @@ async def run(
 
 
 def launch(
-    run_coro: Awaitable[NoReturn], app_name: str = "my-awesome-bot", /,
+    app_name: str = "my-awesome-bot",
+    *runs: Awaitable[NoReturn],
+    return_on_first_exception: bool = True,
 ) -> NoReturn:
     configure_logging(app_name)
     loop = asyncio.new_event_loop()
     try:
         runtime.info(f"Starting {app_name}...")
         asyncio.events.set_event_loop(loop)
-        return loop.run_until_complete(run_coro)
+
+        done, pending = loop.run_until_complete(
+            asyncio.wait(
+                runs,
+                return_when=(
+                    asyncio.tasks.FIRST_EXCEPTION
+                    if return_on_first_exception
+                    else asyncio.tasks.ALL_COMPLETED
+                ),
+            )
+        )
+
+        for task in done:
+            runtime.critical(f"Error: {task.exception()} for {task._coro!s}")
+
+        for task in pending:
+            runtime.critical(
+                f"Stopped possible because of errors above: {task._coro!s}"
+            )
 
     except (SystemExit, KeyboardInterrupt, Exception) as e:
         runtime.critical(

@@ -56,7 +56,7 @@ Let's dive in
 
     if __name__ == "__main__":
         from garnet.runner import run, launch
-        launch(run(router, DictStorage()), "my-example-app")
+        launch("my-first-garnet-app", run(router, DictStorage()))
 
 ************
 Key features

@@ -31,7 +31,8 @@ class Filter(Generic[ET]):
     Example:
 
     >>> from typing import Optional
-    >>> from garnet import Filter, events
+    >>> from garnet import events
+    >>> from garnet.filters import Filter
     >>>
     >>> async def filter_function(e: Optional[events.NewMessage.Event]) -> bool:
     ...     return False
@@ -78,10 +79,11 @@ class Filter(Generic[ET]):
 
         Example:
 
-        >>> from garnet import Router, Filter
+        >>> from garnet.events import Router
+        >>> from garnet.filters import Filter
         >>> router = Router()
         >>>
-        >>> @router.message(Filter(lambda _: True) ^ Filter(lambda _: False))
+        >>> @router.message(Filter(lambda _: False) ^ Filter(lambda _: False))
         >>> async def never_gonna_work(event): pass
         ...
         >>>
@@ -143,6 +145,11 @@ class Filter(Generic[ET]):
         """Test if the Filter's got any `event_builder`"""
         return self.event_builder is None
 
+    def __str__(self) -> str:
+        return f"Filter on top of ({self.function.__name__}) at {hex(id(self))}"
+
+    __repr__ = __str__
+
 
 def binary_op(
     filter1: Filter[ET],
@@ -170,13 +177,13 @@ def binary_op(
         return operator_(await filter1.call(event), await filter2.call(event),)
 
     func.__name__ = (
-        f"Merged({filter1.function.__name__}+{filter2.function.__name__}"
+        f"Merged({filter1.function.__name__}+{filter2.function.__name__})"
     )
 
     # noinspection PyUnreachableCode
     if __debug__:
         func.__doc__ = (
-            f"Merged:\nA: {filter1.function.__doc__}"
+            f"Merged:\nA: {filter1.function.__name__}"
             f"\nB: {filter2.function.__name__}"
         )
 
@@ -209,9 +216,3 @@ def ensure_filters(
             yield filter_
         else:
             yield Filter(function=filter_, event_builder=event_builder)
-
-
-__all__ = (
-    "Filter",
-    "ensure_filters",
-)

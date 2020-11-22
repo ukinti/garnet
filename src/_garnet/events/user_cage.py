@@ -24,6 +24,11 @@ def _default_key_maker(
 
 
 class UserCage(Generic[StorageDataT]):
+    """
+    UserCage is "cage" for a particular user in chat.
+    That stores user's state and can also be used to store user related date
+    """
+
     __slots__ = "key", "storage"
 
     def __init__(
@@ -41,14 +46,17 @@ class UserCage(Generic[StorageDataT]):
         self.storage = storage
 
     async def get_state(self) -> Optional[str]:
+        """Get user's state."""
         return await self.storage.get_state(self.key)
 
     async def get_data(self) -> Optional[StorageDataT]:
+        """Get data associated with user."""
         return await self.storage.get_data(self.key)
 
     async def update_data(
         self, data: Optional[StorageDataT] = None, /, **kwargs: Any,
     ) -> None:
+        """Update user's data"""
         if data is not None and not isinstance(data, Mapping):
             raise ValueError(
                 "type for `data` is expected to be a subtype "
@@ -65,6 +73,7 @@ class UserCage(Generic[StorageDataT]):
         await self.storage.update_data(self.key, data=temp_data)  # type: ignore
 
     async def set_state(self, state: Optional[Union[M, str]] = None) -> None:
+        """Set user's current state, state can be M(ember) of a state group."""
         if isinstance(state, M):
             state_name = state.name
         else:
@@ -73,13 +82,30 @@ class UserCage(Generic[StorageDataT]):
         await self.storage.set_state(self.key, state=state_name)
 
     async def set_data(self, data: Optional[StorageDataT] = None) -> None:
+        """Rewrite user associated data."""
         await self.storage.set_data(self.key, data=data)
 
     async def reset_state(self) -> None:
+        """Reset user's state."""
         await self.storage.reset_state(self.key)
 
     async def reset_data(self) -> None:
+        """Reset user's data"""
         await self.storage.reset_data(self.key)
 
     async def free(self) -> None:
+        """
+        Set user **free**
+
+        >>> from garnet.events import UserCage
+        >>> from garnet.storages import DictStorage
+        >>> cage = UserCage(DictStorage(), 0x1, 0x2)
+        >>> await cage.update_data(abc=123)
+        >>> await cage.set_state("some")
+        >>> assert await cage.get_data() == {"abc": 123}
+        >>> assert await cage.get_state() == "some"
+        >>> await cage.free()
+        >>> assert await cage.get_state() is None
+        >>> assert await cage.get_data() is None
+        """
         await self.storage.reset(self.key)

@@ -26,16 +26,18 @@ class EventHandler(Generic[ET], abc.ABC):
     from telethon import custom
     from garnet import handler, filters, events
 
-    def sqrt_f(n: float, /):
+    Usage::
+
+        def sqrt_f(n: float, /):
             return n ** 0.5
 
-    class SqrtHandler(handler.EventHandler[custom.Message]):
-        __event_builder__ = events.NewMessage
-        filters = (filters.text.can_be_float(), )
+        class SqrtHandler(handler.EventHandler[custom.Message]):
+            __event_builder__ = events.NewMessage
+            filters = (filters.text.can_be_float(), )
 
-        async def handle(self) -> None:
-            rooted = sqrt_f(float(self.e.raw_text))
-            await self.e.reply(f"{:.6f}")
+            async def handle(self) -> None:
+                rooted = sqrt_f(float(self.e.raw_text))
+                await self.e.reply(f"{:.6f}")
 
     """
 

@@ -39,4 +39,4 @@ async def main():
 
 if __name__ == "__main__":
     from garnet.runner import launch
-    launch(main(), "circular-states-app")
+    launch("circular-states-app", main(),)

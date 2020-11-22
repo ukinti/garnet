@@ -1,3 +1,4 @@
+import copy
 import functools
 from contextlib import contextmanager
 from typing import (
@@ -67,9 +68,7 @@ async def check_filter(
 
 
 class Router:
-    """
-    Router class
-    """
+    """Router table."""
 
     __slots__ = (
         "event",
@@ -105,6 +104,19 @@ class Router:
         self.children: "List[Router]" = []
         self._cage_key_maker_f = cage_key_maker
 
+    def __deepcopy__(self, memo) -> "Router":
+        copied = self.__class__(
+            self.event,
+            *self.upper_filters,
+            cage_key_maker=self._cage_key_maker_f,
+        )
+        copied._handlers = self._handlers
+        copied._intermediates = self._intermediates
+        copied.children = [
+            copy.deepcopy(child, memo=memo) for child in self.children
+        ]
+        return copied
+
     def add_use(self, intermediate: UnwrappedIntermediateT) -> None:
         """
         Add async generator function to intermediates.
@@ -119,10 +131,15 @@ class Router:
 
         Example:
 
+        >>> from garnet.events import Router
+        >>> router = Router()
+        >>>
         >>> @router.use()
         ... async def router_intermediate(handler, event):
-        ...    async with my_shiny_database.open_txn():
+        ...    try:
         ...        await handler(event)
+        ...    finally:
+        ...         print("another iteration, another update")
         """
 
         def decorator(func: UnwrappedIntermediateT) -> UnwrappedIntermediateT:
@@ -199,12 +216,12 @@ class Router:
             event_token = event.set_current(event)
             fsm_token = fsm_ctx.CageCtx.set(fsm_context)
             client_token = client.set_current(client)
-        try:
-            yield
-        finally:
-            event.reset_current(event_token)
-            fsm_ctx.CageCtx.reset(fsm_token)
-            client.reset_current(client_token)
+            try:
+                yield
+            finally:
+                event.reset_current(event_token)
+                fsm_ctx.CageCtx.reset(fsm_token)
+                client.reset_current(client_token)
 
     async def _notify_handlers(
         self,
@@ -379,3 +396,15 @@ class Router:
 
         self._handlers.append(handler)
         return self
+
+    def __str__(self) -> str:
+        return (
+            f"{self.__class__.__name__} stats("
+            f"children={len(self.children)}, "
+            f"own_handlers={len(self._handlers)}, "
+            f"own_filters={len(self.upper_filters)}, "
+            f"own_intermediates={len(self._intermediates)}"
+            f") at {hex(id(self))}"
+        )
+
+    __repr__ = __str__

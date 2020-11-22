@@ -77,11 +77,11 @@ class QueryBaker(Generic[ResultT]):
         """Get checked postback string (respecting maxlen)."""
         try:
             postback = self.sep.join(
-                kwargs.pop(key) for key, _ in self.typed_args
+                (self.prefix, *(kwargs.pop(key) for key, _ in self.typed_args),)
             )
         except KeyError as ctx:
             raise KeyError(
-                f"get_checked call is missing key {ctx.args} " f"from {self!r}"
+                f"get_checked call is missing key {ctx.args} from {self!r}"
             ) from None
 
         if len(postback) >= self.maxlen:
@@ -96,8 +96,12 @@ class QueryBaker(Generic[ResultT]):
     ):
         async def anonymous(event: ET) -> bool:
             """Fake anonymous function from QueryBaker."""
-            postback: str = event.data.decode()
-            prefix, data = postback.split(self.sep, maxsplit=1)
+            try:
+                postback: str = event.data.decode()
+                prefix, data = postback.split(self.sep, maxsplit=1)
+            except ValueError:
+                return False
+
             if prefix != self.prefix:
                 return False
 
