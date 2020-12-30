@@ -87,6 +87,22 @@ def exact(text: str, /) -> Filter[NewMessage.Event]:
     )
 
 
+def exact_map(
+    exact_as: str,
+    f: Callable[[str], str],
+    /
+) -> Filter[NewMessage.Event]:
+    """
+    Check if f(Some.raw_text::str) is equal f(exact_as)
+    """
+    # do not pre-compute and cache f(exact_as) since `f` can be designed to
+    # work dynamically and mutate its state.
+    return Filter(
+        lambda update: f(update.raw_text) == f(exact_as),
+        event_builder=NewMessage,
+    )
+
+
 def between(*texts: str, to_set: bool = True) -> Filter:
     """
     Check if Some.raw_text::str is equal to text

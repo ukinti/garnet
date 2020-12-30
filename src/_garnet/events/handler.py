@@ -41,7 +41,10 @@ class EventHandler(Generic[ET], abc.ABC):
 
     """
 
-    filters: Tuple[Filter[ET], ...]
+    filters: Union[
+        Tuple[Tuple[Filter[ET], Callable[[ET, Any], Awaitable[Any]]], ...],
+        Tuple[Filter[ET], ...],
+    ]
 
     @property
     @abc.abstractmethod

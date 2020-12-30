@@ -202,17 +202,16 @@ def unary_op(
     return Filter(function=func, event_builder=filter1.event_builder,)
 
 
-def ensure_filters(
+def ensure_filter(
     event_builder: Optional[Type[EventBuilder]],
-    filters: Tuple[Union[Filter[ET], Callable[[ET], bool]], ...],
-) -> Generator[Filter[ET], None, None]:
+    filter_: Union[Filter[ET], Callable[[ET], bool]],
+) -> Filter[ET]:
     """
     Generator function propagates event builder to event-builder-naive filters
     """
-    for filter_ in filters:
-        if isinstance(filter_, Filter):
-            if not filter_.event_builder:
-                filter_.event_builder = event_builder
-            yield filter_
-        else:
-            yield Filter(function=filter_, event_builder=event_builder)
+    if isinstance(filter_, Filter):
+        if not filter_.event_builder:
+            filter_.event_builder = event_builder
+        return filter_
+    else:
+        return Filter(function=filter_, event_builder=event_builder)
