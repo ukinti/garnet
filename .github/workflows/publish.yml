@@ -1,5 +1,5 @@
 ---
-name: '[CD] PyPI.org'
+name: '[CD] to PyPI'
 
 on:
   release:
@@ -9,6 +9,7 @@ on:
 jobs:
   deliver_to_pypi:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
 
