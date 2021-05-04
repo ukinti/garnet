@@ -30,6 +30,6 @@ jobs:
 
       - name: Deliver a new release (first dry run)
         run: |
-          test $(poetry version -s) = ${{ env.BUILD_VER }}
+          test v$(poetry version -s) = ${{ env.BUILD_VER }}
           poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} --dry-run
           poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}
