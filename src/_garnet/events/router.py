@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     Generator,
     List,
     Optional,
@@ -13,7 +14,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    Dict,
 )
 
 from telethon.client.updates import EventBuilderDict

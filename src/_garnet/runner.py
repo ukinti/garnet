@@ -156,7 +156,7 @@ def launch(
 
             loop.run_until_complete(loop.shutdown_asyncgens())
 
-            if hasattr(loop, 'shutdown_default_executor'):
+            if hasattr(loop, "shutdown_default_executor"):
                 loop.run_until_complete(
                     loop.shutdown_default_executor(),  # type: ignore
                 )
