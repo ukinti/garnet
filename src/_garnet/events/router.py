@@ -13,6 +13,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    Dict,
 )
 
 from telethon.client.updates import EventBuilderDict
@@ -104,7 +105,7 @@ class Router:
         self.children: "List[Router]" = []
         self._cage_key_maker_f = cage_key_maker
 
-    def __deepcopy__(self, memo) -> "Router":
+    def __deepcopy__(self, memo: Dict[Any, Any]) -> "Router":
         copied = self.__class__(
             self.event,
             *self.upper_filters,

@@ -10,28 +10,25 @@ jobs:
   deliver_to_pypi:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
       - name: Set Build version
         run: |
           echo "BUILD_VER=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
       - name: Install python3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
-      - name: Install latest PIP, latest poetry
+      - name: Install poetry
         run: |
-          python install -m pip install -U pip
-          pip install -U poetry
-
-      - name: Check if version is bumped
-      - run: |
-          test $(poetry version -s) = ${{ env.BUILD_VER }}
+          curl -sSL \
+            "https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py" | python
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
 
       - name: Deliver a new release (first dry run)
         run: |
+          test $(poetry version -s) = ${{ env.BUILD_VER }}
           poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} --dry-run
           poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}
