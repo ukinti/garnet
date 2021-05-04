@@ -133,11 +133,13 @@ def launch(
         )
 
         for task in done:
-            runtime.critical(f"Error: {task.exception()} for {task._coro!s}")
+            _name = getattr(task, "_coro", "unknown")
+            runtime.critical(f"Error: {task.exception()} for {_name}")
 
         for task in pending:
+            _name = getattr(task, "_coro", "unknown")
             runtime.critical(
-                f"Stopped possible because of errors above: {task._coro!s}"
+                f"Stopped possible because of errors above: {_name}"
             )
 
     except (SystemExit, KeyboardInterrupt, Exception) as e:
@@ -153,13 +155,18 @@ def launch(
                 task.cancel()
 
             loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.run_until_complete(loop.shutdown_default_executor())
+
+            if hasattr(loop, "shutdown_default_executor"):
+                loop.run_until_complete(
+                    loop.shutdown_default_executor(),  # type: ignore
+                )
+
         finally:
             asyncio.events.set_event_loop(None)
             loop.close()
 
 
-def configure_logging(app_name: str):
+def configure_logging(app_name: str) -> None:
     logger = logging.getLogger(app_name)
     logger.setLevel(logging.DEBUG if __debug__ else logging.INFO)
 
