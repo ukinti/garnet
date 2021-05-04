@@ -101,6 +101,3 @@ ENV/
 
 # ms-vscode
 .vscode/
-
-# poetry
-poetry.lock
