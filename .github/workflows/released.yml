@@ -1,0 +1,35 @@
+---
+name: '[CD] PyPI.org'
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  deliver_to_pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set Build version
+        run: |
+          echo "BUILD_VER=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: Install python3.8, latest PIP, latest poetry
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+        run: |
+          python install -m pip install -U pip
+          pip install -U poetry
+
+      - name: Check if version is bumped
+      - run: |
+          test $(poetry version -s) = ${{ env.BUILD_VER }}
+
+      - name: Deliver a new release (first dry run)
+        run: |
+          poetry publish -r ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} --dry-run
+          poetry publish -r ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}

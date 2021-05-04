@@ -100,18 +100,13 @@ async def run(
     if callable(print_):
         print_(f"☄️ Propagate events chaotically: {dont_wait_for_handler}",)
 
-    bot_ctx_token = None
-
     try:
         await storage.init()
-        bot_ctx_token = bot.set_current(bot)
         if not bot.is_connected():
             runtime_cfg = conf_maker()
             await bot.start(bot_token=runtime_cfg["bot_token"],)
         await bot.run_until_disconnected()
     finally:
-        if bot_ctx_token is not None:
-            bot.reset_current(bot_ctx_token)
         await storage.close()
 
 

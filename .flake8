@@ -8,3 +8,5 @@ exclude =
     static
     dist
     *.egg-info
+    venv
+    .venv
