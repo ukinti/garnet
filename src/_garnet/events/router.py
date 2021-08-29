@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     Generator,
     List,
     Optional,
@@ -138,7 +139,7 @@ class Router:
         self.children: "List[Router]" = []
         self._cage_key_maker_f = cage_key_maker
 
-    def __deepcopy__(self, memo) -> "Router":
+    def __deepcopy__(self, memo: Dict[Any, Any]) -> "Router":
         copied = self.__class__(
             self.event,
             *self.upper_filters,

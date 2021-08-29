@@ -100,18 +100,13 @@ async def run(
     if callable(print_):
         print_(f"☄️ Propagate events chaotically: {dont_wait_for_handler}",)
 
-    bot_ctx_token = None
-
     try:
         await storage.init()
-        bot_ctx_token = bot.set_current(bot)
         if not bot.is_connected():
             runtime_cfg = conf_maker()
             await bot.start(bot_token=runtime_cfg["bot_token"],)
         await bot.run_until_disconnected()
     finally:
-        if bot_ctx_token is not None:
-            bot.reset_current(bot_ctx_token)
         await storage.close()
 
 
@@ -138,11 +133,13 @@ def launch(
         )
 
         for task in done:
-            runtime.critical(f"Error: {task.exception()} for {task._coro!s}")
+            _name = getattr(task, "_coro", "unknown")
+            runtime.critical(f"Error: {task.exception()} for {_name}")
 
         for task in pending:
+            _name = getattr(task, "_coro", "unknown")
             runtime.critical(
-                f"Stopped possible because of errors above: {task._coro!s}"
+                f"Stopped possible because of errors above: {_name}"
             )
 
     except (SystemExit, KeyboardInterrupt, Exception) as e:
@@ -158,13 +155,18 @@ def launch(
                 task.cancel()
 
             loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.run_until_complete(loop.shutdown_default_executor())
+
+            if hasattr(loop, "shutdown_default_executor"):
+                loop.run_until_complete(
+                    loop.shutdown_default_executor(),  # type: ignore
+                )
+
         finally:
             asyncio.events.set_event_loop(None)
             loop.close()
 
 
-def configure_logging(app_name: str):
+def configure_logging(app_name: str) -> None:
     logger = logging.getLogger(app_name)
     logger.setLevel(logging.DEBUG if __debug__ else logging.INFO)
 

@@ -1,0 +1,61 @@
+---
+name: 'Releaser'
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        description: |
+          Version format is following: X.Y.Z.
+          Increment selection:
+            - X - major
+            - Y - minor
+            - Z - patch.
+        required: true
+        default: Z
+
+jobs:
+  release-tag:
+    name: Release, Tag
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Fetch tags and configure git
+      run: |
+        git fetch --prune --unshallow --tags
+        git config --local user.name $GIT_USER_NAME
+        git config --local user.email $GIT_USER_EMAIL
+      env:
+        GIT_USER_NAME: github-actions[bot]
+        GIT_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+
+    - name: Install Node.js
+      uses: actions/setup-node@v2-beta
+      with:
+        node-version: '14'
+
+    - name: Install release-it via Yarn
+      run: |
+        yarn global add release-it @release-it/conventional-changelog
+        echo $(yarn global bin) >> $GITHUB_PATH
+
+    - name: Parse increment
+      run: |
+        input=$(echo "${{ github.event.inputs.increment }}" | tr '[:lower:]' '[:upper:]')
+        if [ "$input" == "X" ]; then
+            increment="major"
+        elif [ "$input" == "Y" ]; then
+            increment="minor "
+        elif [ "$input" == "Z" ]; then
+            increment="patch"
+        else
+            echo "invalid value of input, should be one of X, Y, Z"; exit 1
+        fi
+        echo "increment=$increment" >> $GITHUB_ENV
+    - name: Create tag/release
+      run: |
+        release-it --config .github/release-it.json --ci --increment=$increment
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASER_GITHUB_TOKEN }}

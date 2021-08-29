@@ -18,7 +18,7 @@ How to install?
 
 Although, garnet is ``garnet``, it is named ``telegram-garnet`` on the PyPI, you'll have to tell that to pip.
 
-``pip install telegram-garnet``
+``pip install -U telegram-garnet``
 
 
 *************
@@ -280,9 +280,8 @@ Usage
     qb.get_checked(id="51b3f442-a9f6-4dcc-918e-1f08b1189386", act="clear")
     # will produce a "safe" string pattern v:51b3f442-a9f6-4dcc-918e-1f08b1189386:clear
 
-    # You'll use
-    # .get_checked
-    Button.inline()
+    # Where you may want to use .get_checked
+    Button.inline(..., data=qb.get_checked(id=<...>, act="mpa"))
 
 Note
 """"
