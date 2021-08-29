@@ -1,13 +1,5 @@
 import abc
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Generic,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Awaitable, Callable, Generic, Type, TypeVar, Union
 
 from telethon.events.common import EventBuilder
 
@@ -29,6 +21,7 @@ class AfterFilterAction(Generic[ET], abc.ABC):
                 await self.e.reply(f"Hey! {self.e.raw_text} can not be int!")
 
     """
+
     @property
     @abc.abstractmethod
     def __event_builder__(self) -> "Type[EventBuilder]":

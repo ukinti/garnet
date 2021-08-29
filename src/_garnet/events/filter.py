@@ -6,10 +6,8 @@ import operator
 from typing import (
     Awaitable,
     Callable,
-    Generator,
     Generic,
     Optional,
-    Tuple,
     Type,
     TypeVar,
     Union,

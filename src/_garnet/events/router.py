@@ -53,8 +53,7 @@ FilterWithAction = Tuple[Filter[ET], Type[AfterFilterAction[ET]]]
 async def check_filter(
     built: EventBuilderDict,
     filter_: Tuple[
-        Filter[Optional[ET]],
-        Type[AfterFilterAction[Optional[ET], Any]],
+        Filter[Optional[ET]], Type[AfterFilterAction[Optional[ET], Any]],
     ],
     /,
 ) -> bool:
@@ -117,8 +116,7 @@ class Router:
         self,
         default_event: Optional[ET] = None,
         *upper_filters: Union[
-            Filter[Optional[ET]],
-            FilterWithAction[Optional[ET]]
+            Filter[Optional[ET]], FilterWithAction[Optional[ET]]
         ],
         cage_key_maker: Optional[KeyMakerFn] = None,
     ):
@@ -283,9 +281,9 @@ class Router:
                         handler_token = h_ctx.HandlerCtx.set(handler)
 
                         for hf in handler.filters:
-                            assert isinstance(hf, tuple), "Got unchecked " \
-                                                          "handler, " \
-                                                          "won't execute. "
+                            assert isinstance(hf, tuple), (
+                                "Got unchecked " "handler, " "won't execute. "
+                            )
                             if await check_filter(built, hf):
                                 continue
                             break
