@@ -6,6 +6,8 @@ from typing import Any, Callable, Iterable, Type, Union
 from _garnet.events.filter import Filter
 from _garnet.patched_events import NewMessage
 
+_MF = Callable[[str], str]
+
 
 def _base_len_comparator(
     operator_: Union[Callable[[int, int], bool], Callable[[int], bool]],
@@ -84,6 +86,18 @@ def exact(text: str, /) -> Filter[NewMessage.Event]:
     """
     return Filter(
         lambda update: update.raw_text == text, event_builder=NewMessage,
+    )
+
+
+def exact_map(exact_as: str, f: _MF, /) -> Filter[NewMessage.Event]:
+    """
+    Check if f(Some.raw_text::str) is equal f(exact_as)
+    """
+    # do not pre-compute and cache f(exact_as) since `f` can be designed to
+    # work dynamically and mutate its state.
+    return Filter(
+        lambda update: f(update.raw_text) == f(exact_as),
+        event_builder=NewMessage,
     )
 
 

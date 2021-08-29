@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import functools
 from contextlib import contextmanager
@@ -20,7 +21,8 @@ from telethon.client.updates import EventBuilderDict
 from telethon.events import common
 
 import _garnet.patched_events as pe
-from _garnet.events.filter import Filter, ensure_filters
+from _garnet.events.action import AfterFilterAction, NoAction, ensure_action
+from _garnet.events.filter import Filter, ensure_filter
 from _garnet.events.handler import (
     AsyncFunctionHandler,
     EventHandler,
@@ -45,15 +47,28 @@ _EventHandlerGT = Union[
     Type[EventHandler[__ProxyT]], AsyncFunctionHandler[__ProxyT],
 ]
 
+FilterWithAction = Tuple[Filter[ET], Type[AfterFilterAction[ET]]]
+
 
 async def check_filter(
-    built: EventBuilderDict, filter_: Filter[Optional[ET]], /,
+    built: EventBuilderDict,
+    filter_: Tuple[
+        Filter[Optional[ET]], Type[AfterFilterAction[Optional[ET], Any]],
+    ],
+    /,
 ) -> bool:
-    if event := built[filter_.event_builder]:
+    f, on_err_action = filter_
+
+    if event := built[f.event_builder]:
         event_token = event.set_current(event)
 
         try:
-            return await filter_.call(event)
+            if await f.call(event) is True:
+                return True
+            else:
+                asyncio.create_task(on_err_action(event, f).call())
+                return False
+
         finally:
             event.reset_current(event_token)
 
@@ -62,10 +77,27 @@ async def check_filter(
             f"Got event-naive filter: {filter_!r}, "
             f"calling it with default `None`"
         )
-        if await filter_.call(None) is not True:
+        if await f.call(None) is not True:
+            asyncio.create_task(on_err_action(event, f).call())
             return False
 
     return True
+
+
+def _map_filters(
+    for_event: Optional[Type[ET]],
+    filters: Tuple[Union[Filter[Optional[ET]], FilterWithAction[Optional[ET]]]],
+) -> Generator[FilterWithAction, None, None]:
+    for f in filters:
+        if isinstance(f, tuple):
+            filter_, action = f
+        else:
+            filter_, action = f, NoAction
+
+        yield (
+            ensure_filter(for_event, filter_),
+            ensure_action(action, for_event),
+        )
 
 
 class Router:
@@ -83,7 +115,9 @@ class Router:
     def __init__(
         self,
         default_event: Optional[ET] = None,
-        *upper_filters: Filter[Optional[ET]],
+        *upper_filters: Union[
+            Filter[Optional[ET]], FilterWithAction[Optional[ET]]
+        ],
         cage_key_maker: Optional[KeyMakerFn] = None,
     ):
         """
@@ -95,9 +129,7 @@ class Router:
         self._handlers: List[Type[EventHandler[ET]]] = []
 
         if default_event is not None:
-            self.upper_filters = tuple(
-                ensure_filters(default_event, upper_filters)
-            )
+            self.upper_filters = _map_filters(default_event, upper_filters)
         else:
             self.upper_filters = upper_filters
 
@@ -249,6 +281,9 @@ class Router:
                         handler_token = h_ctx.HandlerCtx.set(handler)
 
                         for hf in handler.filters:
+                            assert isinstance(hf, tuple), (
+                                "Got unchecked " "handler, " "won't execute. "
+                            )
                             if await check_filter(built, hf):
                                 continue
                             break
@@ -319,7 +354,7 @@ class Router:
 
     # noinspection PyTypeChecker
     def chat_action(
-        self, *filters: "Filter[ET]",
+        self, *filters: "Union[Filter[ET], FilterWithAction[ET]]",
     ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for `garnet.events.ChatAction` event handlers."""
 
@@ -332,7 +367,7 @@ class Router:
 
     # noinspection PyTypeChecker
     def message_edited(
-        self, *filters: "Filter[ET]",
+        self, *filters: "Union[Filter[ET], FilterWithAction[ET]]",
     ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for `garnet.events.MessageEdited` event handlers."""
 
@@ -344,7 +379,7 @@ class Router:
         return decorator
 
     def default(
-        self, *filters: "Filter[ET]",
+        self, *filters: "Union[Filter[ET], FilterWithAction[ET]]",
     ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for router's default event event handlers."""
         if self.event is None or (
@@ -369,7 +404,7 @@ class Router:
         self,
         event_builder: "Type[common.EventBuilder]",
         /,
-        *filters: "Filter[ET]",
+        *filters: "Union[Filter[ET], FilterWithAction[ET]]",
     ) -> Callable[[_EventHandlerGT[ET]], _EventHandlerGT[ET]]:
         """Decorator for a specific event-aware event handlers."""
 
@@ -383,7 +418,7 @@ class Router:
     def register(
         self,
         handler: "Type[EventHandler[ET]]",
-        filters: "Tuple[Filter[ET], ...]",
+        filters: "Tuple[Union[Filter[ET], FilterWithAction[ET]], ...]",
         event: "Type[common.EventBuilder]",
     ) -> "Router":
         """
@@ -391,9 +426,9 @@ class Router:
         """
         handler = ensure_handler(handler, event_builder=event)
         if handler.filters:
-            handler.filters += tuple(ensure_filters(event, filters))
+            handler.filters += tuple(_map_filters(event, filters))
         else:
-            handler.filters = tuple(ensure_filters(event, filters))
+            handler.filters = tuple(_map_filters(event, filters))
 
         self._handlers.append(handler)
         return self
