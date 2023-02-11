@@ -23,7 +23,7 @@ Telethon = "^1.10.8"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"
-ipython = "^7.15.0"
+ipython = "^8.10.0"
 import-linter = "^1.1"
 flake8 = "^3.8.3"
 isort = "^5.5.2"
